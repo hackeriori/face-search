@@ -1,0 +1,50 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#4F46E5"/>
+      <stop offset="100%" stop-color="#7C3AED"/>
+    </linearGradient>
+    <linearGradient id="glass" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.15"/>
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0.05"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect width="512" height="512" rx="112" fill="url(#bg)"/>
+
+  <!-- Magnifying glass frame -->
+  <circle cx="256" cy="230" r="145" fill="none" stroke="#ffffff" stroke-width="22"/>
+  <circle cx="256" cy="230" r="145" fill="url(#glass)"/>
+
+  <!-- Face silhouette -->
+  <ellipse cx="256" cy="220" rx="70" ry="88" fill="#ffffff"/>
+
+  <!-- Hair -->
+  <path d="M186 190 Q190 100 256 95 Q322 100 326 190 Q310 150 256 145 Q202 150 186 190Z" fill="#4F46E5"/>
+
+  <!-- Eyes -->
+  <ellipse cx="233" cy="210" rx="9" ry="7" fill="#4F46E5"/>
+  <ellipse cx="279" cy="210" rx="9" ry="7" fill="#4F46E5"/>
+  <circle cx="233" cy="210" r="3" fill="#ffffff"/>
+  <circle cx="279" cy="210" r="3" fill="#ffffff"/>
+
+  <!-- Eyebrows -->
+  <path d="M220 195 Q233 188 246 195" fill="none" stroke="#4F46E5" stroke-width="4" stroke-linecap="round"/>
+  <path d="M266 195 Q279 188 292 195" fill="none" stroke="#4F46E5" stroke-width="4" stroke-linecap="round"/>
+
+  <!-- Nose -->
+  <path d="M256 215 L250 248 Q256 255 262 248 Z" fill="#C7D2FE" fill-opacity="0.6"/>
+
+  <!-- Mouth -->
+  <path d="M238 268 Q256 284 274 268" fill="none" stroke="#4F46E5" stroke-width="5" stroke-linecap="round"/>
+
+  <!-- Magnifying glass handle -->
+  <line x1="360" y1="335" x2="445" y2="420" stroke="#ffffff" stroke-width="24" stroke-linecap="round"/>
+  <line x1="360" y1="335" x2="445" y2="420" stroke="#4F46E5" stroke-width="8" stroke-linecap="round" opacity="0.3"/>
+
+  <!-- Search dots -->
+  <circle cx="145" cy="120" r="6" fill="#ffffff" opacity="0.4"/>
+  <circle cx="120" cy="380" r="4" fill="#ffffff" opacity="0.3"/>
+  <circle cx="400" cy="130" r="5" fill="#ffffff" opacity="0.35"/>
+</svg>

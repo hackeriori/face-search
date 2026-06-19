@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain } from 'electron'
+import { app, BrowserWindow, ipcMain, Menu } from 'electron'
 import path from 'path'
 import { initDatabase, getDatabase } from './database'
 import { registerIpcHandlers, setMpvPlayer } from './ipc'
@@ -7,9 +7,14 @@ import { MpvPlayer } from './mpv'
 let mainWindow: BrowserWindow | null = null
 
 function createWindow() {
+  const iconPath = app.isPackaged
+    ? path.join(process.resourcesPath, 'resources', 'icon.ico')
+    : path.join(__dirname, '../../resources/icon.ico')
+
   mainWindow = new BrowserWindow({
     width: 1200,
     height: 800,
+    icon: iconPath,
     webPreferences: {
       preload: path.join(__dirname, '../preload/index.js'),
       contextIsolation: true,
@@ -30,7 +35,8 @@ function createWindow() {
 }
 
 app.whenReady().then(async () => {
-  const dbPath = path.join(app.getPath('userData'), 'face-search.db')
+  Menu.setApplicationMenu(null)
+  const dbPath = path.join(path.dirname(app.getPath('exe')), 'face-search.db')
   initDatabase(dbPath)
   registerIpcHandlers(ipcMain)
   createWindow()

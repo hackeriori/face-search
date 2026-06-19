@@ -2,13 +2,21 @@
   <div class="flex flex-col h-full p-4 gap-4">
     <div class="flex items-center justify-between shrink-0">
       <h2 class="text-lg font-medium text-gray-200">人脸管理</h2>
-      <button
-        @click="loadRecords"
-        class="px-3 py-1.5 bg-gray-700 hover:bg-gray-600 rounded text-sm transition-colors"
-        :disabled="loading"
-      >
-        {{ loading ? '加载中...' : '刷新' }}
-      </button>
+      <div class="flex items-center gap-2">
+        <button
+          @click="checkInvalidRecords"
+          class="px-3 py-1.5 bg-orange-600 hover:bg-orange-500 rounded text-sm transition-colors"
+        >
+          清理
+        </button>
+        <button
+          @click="loadRecords"
+          class="px-3 py-1.5 bg-gray-700 hover:bg-gray-600 rounded text-sm transition-colors"
+          :disabled="loading"
+        >
+          {{ loading ? '加载中...' : '刷新' }}
+        </button>
+      </div>
     </div>
 
     <div v-if="loading" class="flex-1 flex items-center justify-center">
@@ -97,12 +105,44 @@
     >
       {{ message }}
     </div>
+
+    <div v-if="showCleanupDialog" class="fixed inset-0 z-50 flex items-center justify-center bg-black/60" @click.self="showCleanupDialog = false">
+      <div class="bg-gray-800 rounded-lg shadow-xl w-[520px] max-h-[80vh] flex flex-col">
+        <div class="px-5 py-4 border-b border-gray-700 shrink-0">
+          <h3 class="text-base font-medium text-gray-200">无效记录清理</h3>
+          <p class="text-sm text-gray-400 mt-1">
+            以下 {{ invalidRecords.length }} 条记录对应的文件已不存在，是否删除？
+          </p>
+        </div>
+        <div class="flex-1 overflow-y-auto px-5 py-3 min-h-0">
+          <div v-for="r in invalidRecords" :key="r.id" class="py-2 border-b border-gray-700/50 last:border-none">
+            <div class="text-sm text-gray-300 truncate" :title="r.video_path">{{ r.video_path }}</div>
+            <div class="text-xs text-gray-500 mt-0.5">ID: {{ r.id }} | 录入: {{ r.created_at }}</div>
+          </div>
+        </div>
+        <div class="px-5 py-3 border-t border-gray-700 flex items-center justify-end gap-2 shrink-0">
+          <button
+            @click="showCleanupDialog = false"
+            class="px-3 py-1.5 bg-gray-600 hover:bg-gray-500 rounded text-sm transition-colors"
+          >
+            取消
+          </button>
+          <button
+            @click="confirmCleanup"
+            class="px-3 py-1.5 bg-red-600 hover:bg-red-500 rounded text-sm transition-colors"
+            :disabled="cleaning"
+          >
+            {{ cleaning ? '清理中...' : '确认清理' }}
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import { getAllRecords, deleteRecord as deleteRecordApi } from '../lib/api'
+import { getAllRecords, deleteRecord as deleteRecordApi, fileExists } from '../lib/api'
 import type { FaceRecord } from '../lib/types'
 
 const PAGE_SIZE = 15
@@ -113,6 +153,9 @@ const error = ref('')
 const currentPage = ref(1)
 const message = ref('')
 const messageType = ref<'success' | 'error'>('success')
+const showCleanupDialog = ref(false)
+const invalidRecords = ref<FaceRecord[]>([])
+const cleaning = ref(false)
 
 const totalPages = computed(() => Math.max(1, Math.ceil(records.value.length / PAGE_SIZE)))
 
@@ -149,6 +192,44 @@ async function deleteRecord(id: number) {
     showMessage('删除成功', 'success')
   } catch (e: any) {
     showMessage('删除失败: ' + e.message, 'error')
+  }
+}
+
+async function checkInvalidRecords() {
+  try {
+    const all = await getAllRecords() as FaceRecord[]
+    const invalid: FaceRecord[] = []
+    for (const r of all) {
+      if (!r.video_path) continue
+      const exists = await fileExists(r.video_path)
+      if (!exists) invalid.push(r)
+    }
+    if (invalid.length === 0) {
+      showMessage('所有记录对应的文件均存在', 'success')
+      return
+    }
+    invalidRecords.value = invalid
+    showCleanupDialog.value = true
+  } catch (e: any) {
+    showMessage('检查失败: ' + e.message, 'error')
+  }
+}
+
+async function confirmCleanup() {
+  cleaning.value = true
+  try {
+    let count = 0
+    for (const r of invalidRecords.value) {
+      await deleteRecordApi(r.id)
+      count++
+    }
+    records.value = records.value.filter(rec => !invalidRecords.value.some(inv => inv.id === rec.id))
+    showCleanupDialog.value = false
+    showMessage(`已清理 ${count} 条无效记录`, 'success')
+  } catch (e: any) {
+    showMessage('清理失败: ' + e.message, 'error')
+  } finally {
+    cleaning.value = false
   }
 }
 

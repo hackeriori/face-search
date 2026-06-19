@@ -1,6 +1,23 @@
 <template>
   <div class="flex flex-col h-screen">
     <header class="bg-gray-800 border-b border-gray-700 px-4 py-2 flex items-center gap-4 shrink-0">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" class="w-7 h-7 shrink-0">
+        <defs>
+          <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#4F46E5"/>
+            <stop offset="100%" stop-color="#7C3AED"/>
+          </linearGradient>
+        </defs>
+        <rect width="512" height="512" rx="112" fill="url(#bg)"/>
+        <circle cx="256" cy="230" r="145" fill="none" stroke="#ffffff" stroke-width="22"/>
+        <ellipse cx="256" cy="220" rx="70" ry="88" fill="#ffffff"/>
+        <path d="M186 190 Q190 100 256 95 Q322 100 326 190 Q310 150 256 145 Q202 150 186 190Z" fill="#4F46E5"/>
+        <ellipse cx="233" cy="210" rx="9" ry="7" fill="#4F46E5"/>
+        <ellipse cx="279" cy="210" rx="9" ry="7" fill="#4F46E5"/>
+        <path d="M256 215 L250 248 Q256 255 262 248 Z" fill="#C7D2FE" fill-opacity="0.6"/>
+        <path d="M238 268 Q256 284 274 268" fill="none" stroke="#4F46E5" stroke-width="5" stroke-linecap="round"/>
+        <line x1="360" y1="335" x2="445" y2="420" stroke="#ffffff" stroke-width="24" stroke-linecap="round"/>
+      </svg>
       <h1 class="text-lg font-bold text-blue-400">Face Search</h1>
       <nav class="flex gap-1">
         <button
