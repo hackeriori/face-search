@@ -37,6 +37,19 @@ export interface SearchResult {
   similarity: number
 }
 
+export interface FaceRecord {
+  id: number
+  video_path: string
+  image_blob: string
+  facial_area_x: number
+  facial_area_y: number
+  facial_area_w: number
+  facial_area_h: number
+  face_confidence: number
+  created_at: string
+  note: string | null
+}
+
 export interface MpvBounds {
   x: number
   y: number

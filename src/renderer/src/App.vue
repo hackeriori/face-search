@@ -28,6 +28,7 @@
     <main class="flex-1 overflow-hidden">
       <RecordPage v-if="currentTab === 'record'" />
       <SearchPage v-else-if="currentTab === 'search'" />
+      <FaceManagement v-else-if="currentTab === 'management'" />
     </main>
   </div>
 </template>
@@ -36,12 +37,14 @@
 import { ref, onMounted } from 'vue'
 import RecordPage from './pages/RecordPage.vue'
 import SearchPage from './pages/SearchPage.vue'
+import FaceManagement from './pages/FaceManagement.vue'
 import { checkApi } from './lib/api'
 
 const currentTab = ref('record')
 const tabs = [
   { id: 'record', label: '人脸录入' },
-  { id: 'search', label: '人脸搜索' }
+  { id: 'search', label: '人脸搜索' },
+  { id: 'management', label: '人脸管理' }
 ]
 
 const apiStatus = ref<{ ok: boolean; detail: string } | null>(null)
