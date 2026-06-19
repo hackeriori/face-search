@@ -6,7 +6,7 @@ const api = {
 
   insertFace: (params: {
     video_path: string
-    image_blob: ArrayBuffer
+    image_blob: ArrayBuffer | Uint8Array
     facial_area_x: number
     facial_area_y: number
     facial_area_w: number

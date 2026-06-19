@@ -298,7 +298,9 @@ export class MpvPlayer {
       if (fs.existsSync(outPath)) {
         const buf = fs.readFileSync(outPath)
         fs.unlinkSync(outPath)
-        return buf.buffer as ArrayBuffer
+        const arrayBuffer = new ArrayBuffer(buf.length)
+        new Uint8Array(arrayBuffer).set(buf)
+        return arrayBuffer
       }
       await new Promise(r => setTimeout(r, 50))
     }

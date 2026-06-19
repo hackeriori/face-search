@@ -75,8 +75,10 @@ export function registerIpcHandlers(ipc: typeof ipcMain) {
     if (image.isEmpty()) return null
     const pngData = image.toPNG()
     const dataUrl = `data:image/png;base64,${pngData.toString('base64')}`
+    const arrayBuffer = new ArrayBuffer(pngData.length)
+    new Uint8Array(arrayBuffer).set(pngData)
     return {
-      buffer: pngData.buffer,
+      buffer: arrayBuffer,
       dataUrl
     }
   })
@@ -113,9 +115,11 @@ export function registerIpcHandlers(ipc: typeof ipcMain) {
       '.avi': 'video/x-msvideo'
     }
     const mime = mimeMap[ext] || 'application/octet-stream'
+    const arrayBuffer = new ArrayBuffer(buffer.length)
+    new Uint8Array(arrayBuffer).set(buffer)
     return {
       dataUrl: `data:${mime};base64,${buffer.toString('base64')}`,
-      buffer: buffer.buffer
+      buffer: arrayBuffer
     }
   })
 
@@ -129,7 +133,9 @@ export function registerIpcHandlers(ipc: typeof ipcMain) {
 
   ipc.handle('file:readBuffer', async (_event, filePath: string) => {
     const buffer = fs.readFileSync(filePath)
-    return buffer.buffer
+    const arrayBuffer = new ArrayBuffer(buffer.length)
+    new Uint8Array(arrayBuffer).set(buffer)
+    return arrayBuffer
   })
 
   // --- MPV Player IPC ---
@@ -163,7 +169,9 @@ export function registerIpcHandlers(ipc: typeof ipcMain) {
     const buffer = await mpvPlayer.captureFrame()
     const blob = Buffer.from(buffer)
     const dataUrl = `data:image/jpeg;base64,${blob.toString('base64')}`
-    return { buffer, dataUrl }
+    const arrayBuffer = new ArrayBuffer(blob.length)
+    new Uint8Array(arrayBuffer).set(blob)
+    return { buffer: arrayBuffer, dataUrl }
   })
 
   ipc.handle('mpv:getStatus', async () => {

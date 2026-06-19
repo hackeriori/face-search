@@ -13,7 +13,7 @@ export async function representImage(imageDataUrl: string): Promise<{ result: De
 
 export async function insertFace(params: {
   video_path: string
-  image_blob: ArrayBuffer
+  image_blob: ArrayBuffer | Uint8Array
   facial_area_x: number
   facial_area_y: number
   facial_area_w: number

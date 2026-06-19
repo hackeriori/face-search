@@ -198,15 +198,19 @@ async function saveFace() {
   if (!selectedFace.value || !currentImageBuffer.value) return
   saving.value = true
   try {
+    const buf = currentImageBuffer.value
+    const view = buf instanceof ArrayBuffer ? new Uint8Array(buf) : buf
+    const safeBlob = view.slice()
+    const face = selectedFace.value
     await insertFace({
       video_path: videoPath.value || '',
-      image_blob: currentImageBuffer.value,
-      facial_area_x: selectedFace.value.facial_area.x,
-      facial_area_y: selectedFace.value.facial_area.y,
-      facial_area_w: selectedFace.value.facial_area.w,
-      facial_area_h: selectedFace.value.facial_area.h,
-      face_confidence: selectedFace.value.face_confidence,
-      embedding: selectedFace.value.embedding
+      image_blob: safeBlob,
+      facial_area_x: face.facial_area.x,
+      facial_area_y: face.facial_area.y,
+      facial_area_w: face.facial_area.w,
+      facial_area_h: face.facial_area.h,
+      face_confidence: face.face_confidence,
+      embedding: [...face.embedding]
     })
     showMessage('人脸保存成功', 'success')
   } catch (e: any) {
