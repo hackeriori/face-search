@@ -38,8 +38,6 @@ const api = {
 
   readFileBuffer: (filePath: string): Promise<ArrayBuffer> => ipcRenderer.invoke('file:readBuffer', filePath),
 
-  getFfmpegCoreFile: (fileName: string): Promise<ArrayBuffer> => ipcRenderer.invoke('ffmpeg:getCoreFile', fileName),
-
   // --- MPV Player API ---
   mpvOpen: (filePath: string, bounds?: { x: number; y: number; w: number; h: number }): Promise<void> =>
     ipcRenderer.invoke('mpv:open', filePath, bounds),

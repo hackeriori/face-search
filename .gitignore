@@ -14,9 +14,6 @@ release/
 *.sqlite
 *.sqlite3
 
-# ffmpeg.wasm static resources (large binaries)
-resources/ffmpeg/*.wasm
-
 # IDE
 .idea/
 *.swp

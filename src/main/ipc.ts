@@ -1,4 +1,4 @@
-import { ipcMain, clipboard, dialog, shell, BrowserWindow, app } from 'electron'
+import { ipcMain, clipboard, dialog, shell, BrowserWindow } from 'electron'
 import { insertFaceRecord, searchSimilarFaces, getAllFaceRecords, deleteFaceRecord } from './database'
 import { checkApi, representImage } from './faceApi'
 import { MpvPlayer, type Bounds } from './mpv'
@@ -128,12 +128,6 @@ export function registerIpcHandlers(ipc: typeof ipcMain) {
   })
 
   ipc.handle('file:readBuffer', async (_event, filePath: string) => {
-    const buffer = fs.readFileSync(filePath)
-    return buffer.buffer
-  })
-
-  ipc.handle('ffmpeg:getCoreFile', async (_event, fileName: string) => {
-    const filePath = path.join(app.getAppPath(), 'resources', 'ffmpeg', fileName)
     const buffer = fs.readFileSync(filePath)
     return buffer.buffer
   })

@@ -74,7 +74,6 @@ export interface ElectronAPI {
   fileExists: (filePath: string) => Promise<boolean>
   openPath: (filePath: string) => Promise<string>
   readFileBuffer: (filePath: string) => Promise<ArrayBuffer>
-  getFfmpegCoreFile: (fileName: string) => Promise<ArrayBuffer>
   // --- MPV Player ---
   mpvOpen: (filePath: string, bounds?: MpvBounds) => Promise<void>
   mpvClose: () => Promise<void>
