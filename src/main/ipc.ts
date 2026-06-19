@@ -1,8 +1,15 @@
-import { ipcMain, clipboard, dialog, shell, BrowserWindow } from 'electron'
+import { ipcMain, clipboard, dialog, shell, BrowserWindow, app } from 'electron'
 import { insertFaceRecord, searchSimilarFaces, getAllFaceRecords, deleteFaceRecord } from './database'
 import { checkApi, representImage } from './faceApi'
+import { MpvPlayer, type Bounds } from './mpv'
 import fs from 'fs'
 import path from 'path'
+
+let mpvPlayer: MpvPlayer | null = null
+
+export function setMpvPlayer(player: MpvPlayer) {
+  mpvPlayer = player
+}
 
 export function registerIpcHandlers(ipc: typeof ipcMain) {
 
@@ -118,5 +125,79 @@ export function registerIpcHandlers(ipc: typeof ipcMain) {
 
   ipc.handle('shell:openPath', async (_event, filePath: string) => {
     return shell.openPath(filePath)
+  })
+
+  ipc.handle('file:readBuffer', async (_event, filePath: string) => {
+    const buffer = fs.readFileSync(filePath)
+    return buffer.buffer
+  })
+
+  ipc.handle('ffmpeg:getCoreFile', async (_event, fileName: string) => {
+    const filePath = path.join(app.getAppPath(), 'resources', 'ffmpeg', fileName)
+    const buffer = fs.readFileSync(filePath)
+    return buffer.buffer
+  })
+
+  // --- MPV Player IPC ---
+  ipc.handle('mpv:open', async (_event, filePath: string, bounds?: Bounds) => {
+    if (!mpvPlayer) throw new Error('MPV player not initialized')
+    await mpvPlayer.open(filePath, bounds)
+  })
+
+  ipc.handle('mpv:close', async () => {
+    await mpvPlayer?.close()
+  })
+
+  ipc.handle('mpv:play', async () => {
+    await mpvPlayer?.play()
+  })
+
+  ipc.handle('mpv:pause', async () => {
+    await mpvPlayer?.pause()
+  })
+
+  ipc.handle('mpv:togglePause', async () => {
+    await mpvPlayer?.togglePause()
+  })
+
+  ipc.handle('mpv:seek', async (_event, time: number) => {
+    await mpvPlayer?.seek(time)
+  })
+
+  ipc.handle('mpv:captureFrame', async () => {
+    if (!mpvPlayer) throw new Error('MPV player not initialized')
+    const buffer = await mpvPlayer.captureFrame()
+    const blob = Buffer.from(buffer)
+    const dataUrl = `data:image/jpeg;base64,${blob.toString('base64')}`
+    return { buffer, dataUrl }
+  })
+
+  ipc.handle('mpv:getStatus', async () => {
+    return mpvPlayer?.status || null
+  })
+
+  ipc.handle('mpv:resize', async (_event, bounds: Bounds) => {
+    await mpvPlayer?.resize(bounds)
+  })
+
+  ipc.handle('mpv:onStatus', (_event) => {
+    if (!mpvPlayer) return
+    mpvPlayer.onStatusChange = (status) => {
+      const win = BrowserWindow.getFocusedWindow()
+      if (win && !win.isDestroyed()) {
+        win.webContents.send('mpv:statusUpdate', status)
+      }
+    }
+  })
+
+  ipc.handle('mpv:onStopped', (_event) => {
+    if (!mpvPlayer) return
+    const handler = () => {
+      const win = BrowserWindow.getFocusedWindow()
+      if (win && !win.isDestroyed()) {
+        win.webContents.send('mpv:stopped')
+      }
+    }
+    mpvPlayer.onStopped = handler
   })
 }

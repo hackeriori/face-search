@@ -1,7 +1,8 @@
 import { app, BrowserWindow, ipcMain } from 'electron'
 import path from 'path'
 import { initDatabase, getDatabase } from './database'
-import { registerIpcHandlers } from './ipc'
+import { registerIpcHandlers, setMpvPlayer } from './ipc'
+import { MpvPlayer } from './mpv'
 
 let mainWindow: BrowserWindow | null = null
 
@@ -16,6 +17,9 @@ function createWindow() {
       webSecurity: false
     }
   })
+
+  const mpvPlayer = new MpvPlayer(mainWindow)
+  setMpvPlayer(mpvPlayer)
 
   if (process.env.VITE_DEV_SERVER_URL) {
     mainWindow.loadURL(process.env.VITE_DEV_SERVER_URL)

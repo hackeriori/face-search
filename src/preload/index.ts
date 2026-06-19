@@ -34,7 +34,44 @@ const api = {
 
   fileExists: (filePath: string): Promise<boolean> => ipcRenderer.invoke('file:exists', filePath),
 
-  openPath: (filePath: string): Promise<string> => ipcRenderer.invoke('shell:openPath', filePath)
+  openPath: (filePath: string): Promise<string> => ipcRenderer.invoke('shell:openPath', filePath),
+
+  readFileBuffer: (filePath: string): Promise<ArrayBuffer> => ipcRenderer.invoke('file:readBuffer', filePath),
+
+  getFfmpegCoreFile: (fileName: string): Promise<ArrayBuffer> => ipcRenderer.invoke('ffmpeg:getCoreFile', fileName),
+
+  // --- MPV Player API ---
+  mpvOpen: (filePath: string, bounds?: { x: number; y: number; w: number; h: number }): Promise<void> =>
+    ipcRenderer.invoke('mpv:open', filePath, bounds),
+
+  mpvClose: (): Promise<void> => ipcRenderer.invoke('mpv:close'),
+
+  mpvPlay: (): Promise<void> => ipcRenderer.invoke('mpv:play'),
+
+  mpvPause: (): Promise<void> => ipcRenderer.invoke('mpv:pause'),
+
+  mpvTogglePause: (): Promise<void> => ipcRenderer.invoke('mpv:togglePause'),
+
+  mpvSeek: (time: number): Promise<void> => ipcRenderer.invoke('mpv:seek', time),
+
+  mpvCaptureFrame: (): Promise<{ buffer: ArrayBuffer; dataUrl: string }> =>
+    ipcRenderer.invoke('mpv:captureFrame'),
+
+  mpvGetStatus: (): Promise<{ state: string; duration: number; timePos: number; filename: string } | null> =>
+    ipcRenderer.invoke('mpv:getStatus'),
+
+  mpvResize: (bounds: { x: number; y: number; w: number; h: number }): Promise<void> =>
+    ipcRenderer.invoke('mpv:resize', bounds),
+
+  mpvOnStatus: (callback: (status: any) => void): void => {
+    ipcRenderer.invoke('mpv:onStatus')
+    ipcRenderer.on('mpv:statusUpdate', (_event, status) => callback(status))
+  },
+
+  mpvOnStopped: (callback: () => void): void => {
+    ipcRenderer.invoke('mpv:onStopped')
+    ipcRenderer.on('mpv:stopped', () => callback())
+  },
 }
 
 contextBridge.exposeInMainWorld('electronAPI', api)

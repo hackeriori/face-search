@@ -37,6 +37,20 @@ export interface SearchResult {
   similarity: number
 }
 
+export interface MpvBounds {
+  x: number
+  y: number
+  w: number
+  h: number
+}
+
+export interface MpvStatusInfo {
+  state: 'playing' | 'paused' | 'stopped' | 'idle'
+  duration: number
+  timePos: number
+  filename: string
+}
+
 export interface ElectronAPI {
   checkApi: () => Promise<ApiCheckResult>
   representImage: (imageBuffer: ArrayBuffer) => Promise<{ result: DetectedFace[] }>
@@ -59,6 +73,20 @@ export interface ElectronAPI {
   readFileAsDataUrl: (filePath: string) => Promise<{ dataUrl: string; buffer: ArrayBuffer }>
   fileExists: (filePath: string) => Promise<boolean>
   openPath: (filePath: string) => Promise<string>
+  readFileBuffer: (filePath: string) => Promise<ArrayBuffer>
+  getFfmpegCoreFile: (fileName: string) => Promise<ArrayBuffer>
+  // --- MPV Player ---
+  mpvOpen: (filePath: string, bounds?: MpvBounds) => Promise<void>
+  mpvClose: () => Promise<void>
+  mpvPlay: () => Promise<void>
+  mpvPause: () => Promise<void>
+  mpvTogglePause: () => Promise<void>
+  mpvSeek: (time: number) => Promise<void>
+  mpvCaptureFrame: () => Promise<{ buffer: ArrayBuffer; dataUrl: string }>
+  mpvGetStatus: () => Promise<MpvStatusInfo | null>
+  mpvResize: (bounds: MpvBounds) => Promise<void>
+  mpvOnStatus: (callback: (status: MpvStatusInfo) => void) => void
+  mpvOnStopped: (callback: () => void) => void
 }
 
 declare global {

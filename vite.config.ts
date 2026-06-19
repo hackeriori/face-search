@@ -9,6 +9,9 @@ const projectRoot = __dirname
 
 export default defineConfig({
   root: 'src/renderer',
+  optimizeDeps: {
+    exclude: ['@ffmpeg/ffmpeg', '@ffmpeg/core', '@ffmpeg/util']
+  },
   plugins: [
     tailwindcss(),
     vue(),
