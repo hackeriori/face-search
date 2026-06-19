@@ -31,9 +31,9 @@
             <span class="text-gray-500">相似度:</span>
             <span class="text-green-400 font-bold">{{ item.similarity }}%</span>
           </div>
-          <div class="truncate" :title="item.video_path">
-            <span class="text-gray-500">视频:</span>
-            <button @click="openVideo(item.video_path)" class="text-blue-400 hover:text-blue-300 ml-1 truncate max-w-full">
+          <div class="flex items-center gap-1 min-w-0" :title="item.video_path">
+            <span class="text-gray-500 shrink-0">视频:</span>
+            <button @click="openVideo(item.video_path)" class="text-blue-400 hover:text-blue-300 truncate min-w-0">
               {{ item.video_path || '(无视频)' }}
             </button>
           </div>

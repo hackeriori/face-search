@@ -1,23 +1,27 @@
 <template>
   <div class="flex flex-col h-full p-4 gap-4 overflow-y-auto">
     <div class="grid grid-cols-2 gap-4 flex-1 min-h-0">
-      <div class="flex flex-col gap-3">
-        <div class="bg-gray-800 rounded-lg p-3 border border-gray-700">
+      <div class="flex flex-col gap-3 min-h-0">
+        <div class="bg-gray-800 rounded-lg p-3 border border-gray-700 flex-1 flex flex-col min-h-0">
           <h2 class="text-sm font-medium text-gray-300 mb-2">视频来源</h2>
-          <VideoPlayer
-            ref="videoPlayerRef"
-            :videoPath="videoPath"
-            @frame-captured="onFrameCaptured"
-          />
+          <div class="flex-1 min-h-0">
+            <VideoPlayer
+              ref="videoPlayerRef"
+              :videoPath="videoPath"
+              @frame-captured="onFrameCaptured"
+            />
+          </div>
           <div class="mt-2 flex gap-2">
             <button @click="selectVideo" class="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 rounded text-sm transition-colors">选择视频</button>
             <button @click="captureFrame" :disabled="!videoPath" class="px-3 py-1.5 bg-green-600 hover:bg-green-700 rounded text-sm disabled:opacity-40 transition-colors">截取当前帧</button>
           </div>
         </div>
 
-        <div class="bg-gray-800 rounded-lg p-3 border border-gray-700">
+        <div class="bg-gray-800 rounded-lg p-3 border border-gray-700 flex-1 flex flex-col min-h-0">
           <h2 class="text-sm font-medium text-gray-300 mb-2">图片来源</h2>
-          <ImageInput ref="imageInputRef" @image-selected="onImageSelected" />
+          <div class="flex-1 min-h-0 flex items-center justify-center">
+            <ImageInput ref="imageInputRef" @image-selected="onImageSelected" />
+          </div>
         </div>
       </div>
 
@@ -45,16 +49,15 @@
           <div v-else class="flex-1 flex items-center justify-center text-gray-500 text-sm">
             暂无图片，请截取视频帧或选择图片
           </div>
-        </div>
-
-        <div class="flex gap-2 justify-end">
-          <button
-            @click="saveFace"
-            :disabled="!selectedFace || saving"
-            class="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded text-sm font-medium disabled:opacity-40 transition-colors"
-          >
-            {{ saving ? '保存中...' : '保存人脸' }}
-          </button>
+          <div class="mt-2 flex gap-2 justify-end">
+            <button
+              @click="saveFace"
+              :disabled="!selectedFace || saving"
+              class="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded text-sm font-medium disabled:opacity-40 transition-colors"
+            >
+              {{ saving ? '保存中...' : '保存人脸' }}
+            </button>
+          </div>
         </div>
       </div>
     </div>
