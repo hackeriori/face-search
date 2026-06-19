@@ -1,0 +1,40 @@
+{
+  "name": "face-search",
+  "version": "1.0.0",
+  "description": "Face search desktop application",
+  "main": "dist/main/index.js",
+  "scripts": {
+    "dev": "vite",
+    "dev:electron": "node scripts/dev.js",
+    "dev:web": "node scripts/dev-web.js",
+    "build": "vue-tsc --noEmit && vite build",
+    "build:electron": "npm run build && electron-builder",
+    "postinstall": "node scripts/download-ffmpeg.js",
+    "rebuild": "electron-rebuild -f -w better-sqlite3"
+  },
+  "dependencies": {
+    "better-sqlite3": "^12.11.1",
+    "electron-store": "^10.0.0",
+    "form-data": "^4.0.1",
+    "node-fetch": "^2.7.0",
+    "sqlite-vec": "^0.1.6"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.0.0",
+    "@types/better-sqlite3": "^7.6.12",
+    "@types/node": "^22.0.0",
+    "@types/node-fetch": "^2.6.12",
+    "@vitejs/plugin-vue": "^5.2.0",
+    "electron": "^42.4.1",
+    "electron-builder": "^25.1.8",
+    "electron-rebuild": "^3.2.9",
+    "tailwindcss": "^4.0.0",
+    "typescript": "^5.7.0",
+    "vite": "^6.0.0",
+    "vite-plugin-electron": "^0.28.0",
+    "vite-plugin-electron-renderer": "^0.14.0",
+    "vue": "^3.5.0",
+    "vue-router": "^4.5.0",
+    "vue-tsc": "^2.2.0"
+  }
+}

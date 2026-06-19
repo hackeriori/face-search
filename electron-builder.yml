@@ -1,0 +1,30 @@
+appId: com.face-search.app
+productName: Face Search
+directories:
+  output: release
+  buildResources: resources
+files:
+  - dist/**/*
+  - resources/**/*
+  - package.json
+extraResources:
+  - from: resources/
+    to: resources/
+    filter:
+      - "**/*"
+win:
+  target:
+    - target: nsis
+      arch:
+        - x64
+  icon: resources/icon.ico
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+  perMachine: true
+asar: true
+asarUnpack:
+  - "**/*.node"
+  - "resources/**"
+nodeGypRebuild: false
+npmRebuild: true
