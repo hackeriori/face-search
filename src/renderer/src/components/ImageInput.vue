@@ -16,6 +16,7 @@ import { openFile, readFileAsDataUrl, readClipboardImage } from '../lib/api'
 
 const emit = defineEmits<{
   'image-selected': [data: { dataUrl: string; buffer: ArrayBuffer }]
+  'paste-start': []
 }>()
 
 async function selectImageFile() {
@@ -29,6 +30,7 @@ async function selectImageFile() {
 }
 
 async function pasteFromClipboard() {
+  emit('paste-start')
   const data = await readClipboardImage()
   if (!data) return
   emit('image-selected', { dataUrl: data.dataUrl, buffer: data.buffer })

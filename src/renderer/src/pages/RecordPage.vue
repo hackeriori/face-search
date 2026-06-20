@@ -19,7 +19,7 @@
 
         <div class="bg-gray-800 rounded-lg p-3 border border-gray-700">
           <h2 class="text-sm font-medium text-gray-300 mb-2">图片来源</h2>
-          <ImageInput ref="imageInputRef" @image-selected="onImageSelected" />
+          <ImageInput ref="imageInputRef" @paste-start="pasting = true" @image-selected="onImageSelected" />
         </div>
       </div>
 
@@ -29,7 +29,10 @@
             检测结果
             <span v-if="faces.length" class="text-gray-500 font-normal ml-1">({{ faces.length }} 张人脸)</span>
           </h2>
-          <div v-if="currentImage" class="flex-1 relative overflow-hidden rounded" ref="imageContainer">
+          <div v-if="pasting" class="flex-1 flex items-center justify-center text-gray-500 text-sm">
+            正在处理粘贴的图片...
+          </div>
+          <div v-else-if="currentImage" class="flex-1 relative overflow-hidden rounded" ref="imageContainer">
             <img
               :src="currentImage"
               class="max-w-full max-h-full object-contain"
@@ -135,10 +138,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, nextTick } from 'vue'
+import { ref, computed, nextTick, onMounted, onUnmounted } from 'vue'
 import VideoPlayer from '../components/VideoPlayer.vue'
 import ImageInput from '../components/ImageInput.vue'
-import { representImage, insertFaceRecord, searchMatchingActors, findOrCreateVideo, createActor, hasFaceRecord } from '../lib/api'
+import { representImage, insertFaceRecord, searchMatchingActors, findOrCreateVideo, createActor, hasFaceRecord, readClipboardImage } from '../lib/api'
 import type { DetectedFace, ActorMatchCandidate } from '../lib/types'
 
 const videoPath = ref('')
@@ -152,6 +155,7 @@ const faceCanvas = ref<HTMLCanvasElement | null>(null)
 const displayImage = ref<HTMLImageElement | null>(null)
 const actorName = ref('')
 const saving = ref(false)
+const pasting = ref(false)
 const message = ref('')
 const messageType = ref<'success' | 'error'>('success')
 
@@ -164,6 +168,25 @@ const showActorDialog = ref(false)
 const actorCandidates = ref<ActorMatchCandidate[]>([])
 let dialogResolve: ((actorId: number | null) => void) | null = null
 let dialogReject: (() => void) | null = null
+
+async function handleKeyboardPaste(e: KeyboardEvent) {
+  if ((e.ctrlKey || e.metaKey) && e.key === 'v') {
+    e.preventDefault()
+    pasting.value = true
+    await nextTick()
+    try {
+      const data = await readClipboardImage()
+      if (data) {
+        await onImageSelected(data)
+      }
+    } finally {
+      pasting.value = false
+    }
+  }
+}
+
+onMounted(() => window.addEventListener('keydown', handleKeyboardPaste))
+onUnmounted(() => window.removeEventListener('keydown', handleKeyboardPaste))
 
 async function selectVideo() {
   const result = await window.electronAPI.openFile({
@@ -216,6 +239,8 @@ async function detectFaces(imageDataUrl: string) {
     drawFaces()
   } catch (e: any) {
     showMessage('人脸检测失败: ' + e.message, 'error')
+  } finally {
+    pasting.value = false
   }
 }
 

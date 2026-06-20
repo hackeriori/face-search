@@ -2,10 +2,14 @@
   <div class="flex flex-col h-full p-4 gap-4">
     <div class="bg-gray-800 rounded-lg p-3 border border-gray-700">
       <h2 class="text-sm font-medium text-gray-300 mb-2">输入搜索图片</h2>
-      <ImageInput @image-selected="onImageSelected" />
+      <ImageInput @paste-start="pasting = true" @image-selected="onImageSelected" />
     </div>
 
-    <div v-if="searching" class="flex items-center justify-center py-12">
+    <div v-if="pasting" class="flex items-center justify-center py-12">
+      <div class="text-gray-400">正在处理粘贴的图片...</div>
+    </div>
+
+    <div v-else-if="searching" class="flex items-center justify-center py-12">
       <div class="text-gray-400">正在搜索相似人脸...</div>
     </div>
 
@@ -26,17 +30,37 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onMounted, onUnmounted, nextTick } from 'vue'
 import ImageInput from '../components/ImageInput.vue'
 import SearchResults from '../components/SearchResults.vue'
-import { representImage, searchFaces } from '../lib/api'
+import { representImage, searchFaces, readClipboardImage } from '../lib/api'
 import type { SearchResult } from '../lib/types'
 
 const results = ref<SearchResult[]>([])
 const searching = ref(false)
 const searched = ref(false)
+const pasting = ref(false)
 const message = ref('')
 const messageType = ref<'success' | 'error'>('success')
+
+async function handleKeyboardPaste(e: KeyboardEvent) {
+  if ((e.ctrlKey || e.metaKey) && e.key === 'v') {
+    e.preventDefault()
+    pasting.value = true
+    await nextTick()
+    try {
+      const data = await readClipboardImage()
+      if (data) {
+        await onImageSelected(data)
+      }
+    } finally {
+      pasting.value = false
+    }
+  }
+}
+
+onMounted(() => window.addEventListener('keydown', handleKeyboardPaste))
+onUnmounted(() => window.removeEventListener('keydown', handleKeyboardPaste))
 
 async function onImageSelected(data: { dataUrl: string; buffer: ArrayBuffer }) {
   searching.value = true
@@ -66,6 +90,7 @@ async function onImageSelected(data: { dataUrl: string; buffer: ArrayBuffer }) {
     searched.value = true
   } finally {
     searching.value = false
+    pasting.value = false
   }
 }
 
