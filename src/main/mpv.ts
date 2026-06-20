@@ -129,6 +129,8 @@ export class MpvPlayer {
       '--no-border',
       '--no-input-default-bindings',
       '--no-audio-display',
+      '--vo=gpu-next',
+      '--hwdec=auto',
       filePath,
     ]
 
