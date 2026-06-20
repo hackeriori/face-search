@@ -50,7 +50,7 @@
           <div class="mt-2 flex gap-2 justify-end">
             <button
               @click="saveFace"
-              :disabled="!selectedFace || saving"
+              :disabled="!videoPath || !faces.length || !selectedFace || saving"
               class="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded text-sm font-medium disabled:opacity-40 transition-colors"
             >
               {{ saving ? '保存中...' : '保存人脸' }}
@@ -69,7 +69,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, nextTick } from 'vue'
 import VideoPlayer from '../components/VideoPlayer.vue'
 import ImageInput from '../components/ImageInput.vue'
 import { representImage, insertFace } from '../lib/api'
@@ -119,9 +119,11 @@ async function detectFaces(imageDataUrl: string) {
   try {
     const result = await representImage(imageDataUrl)
     faces.value = result.result.map((f: DetectedFace) => ({ ...f, selected: false }))
-    if (faces.value.length > 0) {
+    if (faces.value.length === 1) {
       selectFace(0)
     }
+    await nextTick()
+    drawFaces()
   } catch (e: any) {
     showMessage('人脸检测失败: ' + e.message, 'error')
   }
@@ -196,7 +198,19 @@ function onCanvasClick(event: MouseEvent) {
 }
 
 async function saveFace() {
-  if (!selectedFace.value || !currentImageBuffer.value) return
+  if (!videoPath.value) {
+    showMessage('请先选择视频', 'error')
+    return
+  }
+  if (!faces.value.length) {
+    showMessage('请先截取视频帧并检测人脸', 'error')
+    return
+  }
+  if (!selectedFace.value) {
+    showMessage('请先选择一张人脸', 'error')
+    return
+  }
+  if (!currentImageBuffer.value) return
   saving.value = true
   try {
     const buf = currentImageBuffer.value
