@@ -32,7 +32,6 @@ export interface SearchResult {
   facial_area_h: number
   face_confidence: number
   created_at: string
-  note: string | null
   distance: number
   similarity: number
 }
@@ -47,7 +46,6 @@ export interface FaceRecord {
   facial_area_h: number
   face_confidence: number
   created_at: string
-  note: string | null
 }
 
 export interface MpvBounds {
@@ -76,7 +74,6 @@ export interface ElectronAPI {
     facial_area_h: number
     face_confidence: number
     embedding: number[]
-    note?: string
   }) => Promise<number>
   searchFaces: (embedding: number[], maxDistance?: number) => Promise<SearchResult[]>
   getAllRecords: () => Promise<any[]>

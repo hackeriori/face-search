@@ -31,7 +31,6 @@ export function registerIpcHandlers(ipc: typeof ipcMain) {
     facial_area_h: number
     face_confidence: number
     embedding: number[]
-    note?: string
   }) => {
     const embeddingBuffer = Buffer.from(new Float32Array(params.embedding).buffer)
     const imageBuffer = Buffer.from(params.image_blob)
@@ -43,8 +42,7 @@ export function registerIpcHandlers(ipc: typeof ipcMain) {
       facial_area_w: params.facial_area_w,
       facial_area_h: params.facial_area_h,
       face_confidence: params.face_confidence,
-      embedding: embeddingBuffer,
-      note: params.note
+      embedding: embeddingBuffer
     })
   })
 

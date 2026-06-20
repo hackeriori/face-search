@@ -45,10 +45,6 @@
             <span class="text-gray-500">录入时间:</span>
             {{ formatDate(item.created_at) }}
           </div>
-          <div v-if="item.note" class="truncate">
-            <span class="text-gray-500">备注:</span>
-            {{ item.note }}
-          </div>
         </div>
       </div>
     </div>

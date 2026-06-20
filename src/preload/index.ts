@@ -13,7 +13,6 @@ const api = {
     facial_area_h: number
     face_confidence: number
     embedding: number[]
-    note?: string
   }): Promise<number> => ipcRenderer.invoke('db:insertFace', params),
 
   searchFaces: (embedding: number[], maxDistance?: number): Promise<any[]> =>

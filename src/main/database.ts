@@ -23,8 +23,7 @@ export function initDatabase(dbPath: string): Database.Database {
       facial_area_h INTEGER NOT NULL,
       face_confidence REAL NOT NULL,
       embedding F32_BLOB NOT NULL,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-      note TEXT
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     );
 
     CREATE INDEX IF NOT EXISTS idx_video_path ON face_records(video_path);
@@ -74,7 +73,6 @@ export interface FaceRecord {
   face_confidence: number
   embedding: Buffer
   created_at: string
-  note: string | null
 }
 
 export interface FaceInsertParams {
@@ -86,14 +84,13 @@ export interface FaceInsertParams {
   facial_area_h: number
   face_confidence: number
   embedding: Buffer
-  note?: string
 }
 
 export function insertFaceRecord(params: FaceInsertParams): number {
   if (!db) throw new Error('Database not initialized')
   const stmt = db.prepare(`
-    INSERT INTO face_records (video_path, image_blob, facial_area_x, facial_area_y, facial_area_w, facial_area_h, face_confidence, embedding, note)
-    VALUES (@video_path, @image_blob, @facial_area_x, @facial_area_y, @facial_area_w, @facial_area_h, @face_confidence, @embedding, @note)
+    INSERT INTO face_records (video_path, image_blob, facial_area_x, facial_area_y, facial_area_w, facial_area_h, face_confidence, embedding)
+    VALUES (@video_path, @image_blob, @facial_area_x, @facial_area_y, @facial_area_w, @facial_area_h, @face_confidence, @embedding)
   `)
   const result = stmt.run({
     video_path: params.video_path,
@@ -103,8 +100,7 @@ export function insertFaceRecord(params: FaceInsertParams): number {
     facial_area_w: params.facial_area_w,
     facial_area_h: params.facial_area_h,
     face_confidence: params.face_confidence,
-    embedding: params.embedding,
-    note: params.note || null
+    embedding: params.embedding
   })
   return Number(result.lastInsertRowid)
 }
@@ -114,7 +110,7 @@ export function searchSimilarFaces(embedding: Buffer, maxDistance: number = 0.5)
   const rows = db.prepare(`
     SELECT
       id, video_path, image_blob, facial_area_x, facial_area_y,
-      facial_area_w, facial_area_h, face_confidence, created_at, note,
+      facial_area_w, facial_area_h, face_confidence, created_at,
       vec_distance_cosine(embedding, ?) AS distance
     FROM face_records
     WHERE vec_distance_cosine(embedding, ?) <= ?

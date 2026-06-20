@@ -20,7 +20,6 @@ export async function insertFace(params: {
   facial_area_h: number
   face_confidence: number
   embedding: number[]
-  note?: string
 }): Promise<number> {
   return window.electronAPI.insertFace(params)
 }

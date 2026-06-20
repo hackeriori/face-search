@@ -43,7 +43,6 @@
             <th class="text-left py-2 px-2">视频路径</th>
             <th class="text-left py-2 px-2 w-24">置信度</th>
             <th class="text-left py-2 px-2 w-32">录入时间</th>
-            <th class="text-left py-2 px-2">备注</th>
             <th class="text-center py-2 px-2 w-20">操作</th>
           </tr>
         </thead>
@@ -63,9 +62,6 @@
             </td>
             <td class="py-2 px-2 text-gray-400 text-xs">
               {{ record.created_at }}
-            </td>
-            <td class="py-2 px-2 text-gray-400 truncate max-w-[150px]" :title="record.note || ''">
-              {{ record.note || '-' }}
             </td>
             <td class="py-2 px-2 text-center">
               <button
