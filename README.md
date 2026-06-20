@@ -1,90 +1,67 @@
 # Face Search Desktop
 
-A Windows desktop application for face recognition and similarity search, built with Electron + Vue 3 + TypeScript.
+基于 Electron + Vue 3 + TypeScript 构建的 Windows 桌面端人脸识别与相似度搜索应用。
 
-## Features
+## 功能
 
-- **Face Enrollment** — Import video files or images, detect faces via InsightFace API, and store face embeddings in a local SQLite database with vector search support.
-- **Face Search** — Input an image, retrieve the top-N most similar faces from the database, sorted by cosine similarity, with original screenshots and video info displayed.
+- **人脸录入** — 导入视频文件，通过 mpv 嵌入式播放器逐帧浏览，捕获目标帧后调用 InsightFace API 检测人脸，自动匹配已有演员（Actor）或创建新条目，将人脸特征向量与截图存入本地 SQLite 数据库。
+- **人脸搜索** — 上传图片或从剪贴板粘贴，提取人脸特征向量，按余弦相似度检索数据库中 Top-5 最相似的人脸，展示匹配演员、相似度分数及来源视频路径。
+- **人脸管理** — 浏览所有已录入的演员及其关联视频记录，支持展开/折叠、删除单条记录，并提供「清理孤儿数据」功能一键移除指向已不存在视频文件的记录。
 
-## Tech Stack
+## 技术栈
 
-| Category | Choice |
+| 类别 | 选型 |
 |---|---|
-| Desktop Framework | Electron |
-| Frontend | Vue 3 + TypeScript |
-| Build Tools | Vite + electron-builder |
-| CSS | TailwindCSS v4 |
-| Database | better-sqlite3 + sqlite-vec (vector search) |
-| Face Recognition | Remote InsightFace API (`/represent`, `/check`) |
-| Video Processing | HTML5 `<video>` + Canvas; ffmpeg.wasm for fallback |
+| 桌面框架 | Electron |
+| 前端 | Vue 3 + TypeScript（Composition API + `<script setup>`） |
+| 构建工具 | Vite + vite-plugin-electron + electron-builder |
+| 样式 | TailwindCSS v4 |
+| 数据库 | better-sqlite3 + sqlite-vec（向量搜索扩展） |
+| 人脸识别 | 远程 InsightFace API（`/represent`、`/check`） |
+| 视频播放 | mpv（子进程启动，命名管道 JSON IPC 通信，嵌入透明 BrowserWindow） |
 
-## Getting Started
+## 快速开始
 
-### Prerequisites
+### 前置要求
 
 - Node.js >= 18
 - npm >= 9
 
-### Install
+### 安装
 
 ```bash
 npm install
 ```
 
-### Development
+安装后自动执行 `postinstall` 脚本下载 mpv 到 `resources/mpv/`。
+
+### 开发
 
 ```bash
 npm run dev
 ```
 
-### Build
+### 构建安装包
 
 ```bash
 npm run build
+npm run build:electron
 ```
 
-## Project Structure
+## 架构概要
 
 ```
-face-search/
-├── vite.config.ts
-├── electron-builder.yml
-├── package.json
-├── tsconfig.json
-├── src/
-│   ├── main/             # Electron main process
-│   │   ├── index.ts      # Entry point
-│   │   ├── database.ts   # SQLite + sqlite-vec operations
-│   │   ├── faceApi.ts    # InsightFace API client
-│   │   └── ipc.ts        # IPC handlers
-│   ├── preload/           # Preload script (bridge API)
-│   │   └── index.ts
-│   └── renderer/          # Vue 3 renderer
-│       ├── index.html
-│       ├── src/
-│       │   ├── main.ts
-│       │   ├── App.vue
-│       │   ├── style.css
-│       │   ├── components/
-│       │   │   ├── VideoPlayer.vue
-│       │   │   ├── ImageInput.vue
-│       │   │   ├── FaceSelector.vue
-│       │   │   └── SearchResults.vue
-│       │   ├── pages/
-│       │   │   ├── RecordPage.vue
-│       │   │   └── SearchPage.vue
-│       │   └── lib/
-│       │       ├── api.ts
-│       │       └── types.ts
-│       └── assets/
-└── resources/             # Electron packaged resources (ffmpeg.wasm, etc.)
+Renderer (Vue 3)  ←→  Preload (contextBridge)  ←→  Main Process (Electron)
+                                                       ├── database.ts    — SQLite + sqlite-vec CRUD 与向量搜索
+                                                       ├── faceApi.ts     — InsightFace REST 客户端
+                                                       ├── mpv.ts         — mpv 子进程管理 / IPC
+                                                       └── ipc.ts         — 统一 IPC 处理器注册
 ```
 
-## Face Recognition API
+## 人脸识别 API
 
-The app communicates with a remote InsightFace instance at `http://192.168.88.88:8066` (configurable). See `implementation_plan.md` for API details.
+应用需连接远程 InsightFace 服务（默认 `http://192.168.88.88:8066`），API 密钥为 `mt_photos_ai_extra`。通过 `/check` 检测服务健康状态，通过 `/represent` 上传图片获取人脸检测框及 512 维特征向量。
 
-## License
+## 许可证
 
-See [LICENSE](LICENSE).
+[Apache License 2.0](LICENSE)
