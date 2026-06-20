@@ -1,14 +1,14 @@
 <template>
-  <div ref="containerEl" class="bg-gray-900 rounded overflow-hidden relative" style="min-height: 200px;">
-    <div v-if="!videoPath" class="flex items-center justify-center h-48 text-gray-500 text-sm">
+  <div ref="containerEl" class="h-full bg-gray-900 rounded overflow-hidden relative flex flex-col" style="min-height: 200px;">
+    <div v-if="!videoPath" class="flex items-center justify-center flex-1 text-gray-500 text-sm">
       尚未选择视频文件
     </div>
 
-    <div v-else class="relative">
+    <template v-else>
       <div
         ref="videoArea"
-        class="w-full bg-black flex items-center justify-center text-gray-600 select-none"
-        :style="{ minHeight: '200px', maxHeight: '16rem' }"
+        class="h-full bg-black flex items-center justify-center text-gray-600 select-none flex-1"
+        :style="{ minHeight: '200px' }"
       >
         <div v-if="status.state === 'idle' || status.state === 'stopped'" class="flex flex-col items-center gap-2 text-gray-500">
           <svg class="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -24,7 +24,7 @@
         </div>
       </div>
 
-      <div class="bg-gradient-to-t from-black/90 to-transparent p-2 pt-6">
+      <div class="bg-linear-to-t from-black/90 to-transparent p-2">
         <input
           type="range"
           :min="0"
@@ -35,32 +35,23 @@
           @change="onSeekChange"
           class="w-full h-1 accent-blue-500 cursor-pointer"
         />
-        <div class="flex justify-between items-center text-xs text-white/70 mt-1">
-          <div class="flex items-center gap-2">
-            <button
-              @click="togglePlay"
-              :disabled="status.state === 'idle' || status.state === 'stopped'"
-              class="hover:text-white transition-colors disabled:opacity-40"
-            >
-              <svg v-if="status.state === 'paused'" class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M8 5v14l11-7z"/>
-              </svg>
-              <svg v-else class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>
-              </svg>
-            </button>
-            <span>{{ formatTime(status.timePos) }} / {{ formatTime(status.duration) }}</span>
-          </div>
+        <div class="flex items-center gap-2 text-xs text-white/70 mt-1">
           <button
-            @click="captureCurrentFrame"
+            @click="togglePlay"
             :disabled="status.state === 'idle' || status.state === 'stopped'"
-            class="px-2 py-0.5 bg-blue-600 hover:bg-blue-700 rounded text-xs disabled:opacity-40 transition-colors"
+            class="hover:text-white transition-colors disabled:opacity-40"
           >
-            截帧
+            <svg v-if="status.state === 'paused'" class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M8 5v14l11-7z"/>
+            </svg>
+            <svg v-else class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>
+            </svg>
           </button>
+          <span>{{ formatTime(status.timePos) }} / {{ formatTime(status.duration) }}</span>
         </div>
       </div>
-    </div>
+    </template>
   </div>
 </template>
 
@@ -112,19 +103,16 @@ onUnmounted(() => {
 })
 
 function getVideoBounds(): MpvBounds {
-  const container = containerEl.value
-  if (!container) return { x: 100, y: 100, w: 640, h: 360 }
+  const el = videoArea.value ?? containerEl.value
+  if (!el) return { x: 100, y: 100, w: 640, h: 360 }
 
-  const mainWin = window as any
-  const screenLeft = mainWin.screenLeft ?? mainWin.screenX ?? 0
-  const screenTop = mainWin.screenTop ?? mainWin.screenY ?? 0
+  const rect = el.getBoundingClientRect()
 
-  const rect = container.getBoundingClientRect()
   return {
-    x: Math.round(rect.left + screenLeft),
-    y: Math.round(rect.top + screenTop),
+    x: Math.round(rect.left),
+    y: Math.round(rect.top),
     w: Math.round(rect.width),
-    h: Math.round(Math.min(rect.height, 256)),
+    h: Math.round(rect.height),
   }
 }
 

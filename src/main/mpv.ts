@@ -84,9 +84,10 @@ export class MpvPlayer {
 
     const b = bounds || { x: 100, y: 100, w: 640, h: 360 }
 
+    const cb = this.mainWindow?.getContentBounds() ?? { x: 0, y: 0, width: 0, height: 0 }
     const win = new BrowserWindow({
-      x: Math.round(b.x),
-      y: Math.round(b.y),
+      x: Math.round(b.x + cb.x),
+      y: Math.round(b.y + cb.y),
       width: Math.round(b.w),
       height: Math.round(b.h),
       frame: false,
@@ -319,9 +320,10 @@ export class MpvPlayer {
 
   async resize(bounds: Bounds): Promise<void> {
     if (this.overlayWin && !this.overlayWin.isDestroyed()) {
+      const cb = this.mainWindow?.getContentBounds() ?? { x: 0, y: 0, width: 0, height: 0 }
       this.overlayWin.setBounds({
-        x: Math.round(bounds.x),
-        y: Math.round(bounds.y),
+        x: Math.round(bounds.x + cb.x),
+        y: Math.round(bounds.y + cb.y),
         width: Math.round(bounds.w),
         height: Math.round(bounds.h),
       })
