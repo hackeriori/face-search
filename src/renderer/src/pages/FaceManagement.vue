@@ -29,71 +29,76 @@
       </div>
     </template>
 
-    <template v-else-if="!records.length">
+    <template v-else-if="!actorGroups.length">
       <div class="flex-1 flex items-center justify-center">
         <div class="text-gray-500">暂无人脸记录</div>
       </div>
     </template>
 
-    <div v-else class="flex-1 overflow-y-auto min-h-0">
-      <table class="w-full text-sm">
-        <thead class="sticky top-0 bg-gray-900 z-10">
-          <tr class="text-gray-400 border-b border-gray-700">
-            <th class="text-left py-2 px-2 w-16">图片</th>
-            <th class="text-left py-2 px-2">视频路径</th>
-            <th class="text-left py-2 px-2 w-24">置信度</th>
-            <th class="text-left py-2 px-2 w-32">录入时间</th>
-            <th class="text-center py-2 px-2 w-20">操作</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="record in pageRecords" :key="record.id" class="border-b border-gray-800 hover:bg-gray-800/50">
-            <td class="py-2 px-2">
+    <div v-else class="flex flex-col gap-3 flex-1 overflow-y-auto min-h-0">
+      <div class="text-sm text-gray-400 shrink-0">
+        共 <span class="text-gray-200 font-medium">{{ actorGroups.length }}</span> 位演员，<span class="text-gray-200 font-medium">{{ totalRecords }}</span> 条记录
+      </div>
+
+      <div
+        v-for="group in actorGroups"
+        :key="group.actor_id"
+        class="bg-gray-800 rounded-lg border border-gray-700 overflow-hidden"
+      >
+        <div
+          @click="toggleActor(group.actor_id)"
+          class="flex items-center gap-3 p-3 cursor-pointer hover:bg-gray-700/50 transition-colors select-none"
+        >
+          <img
+            :src="`data:image/jpeg;base64,${group.records[0].image_blob}`"
+            class="w-10 h-10 object-cover rounded shrink-0"
+          />
+          <div class="flex-1 min-w-0">
+            <span class="text-sm font-medium text-gray-200">演员 #{{ group.actor_id }}</span>
+            <span class="text-xs text-gray-500 ml-2">{{ group.total_videos }} 部视频</span>
+          </div>
+          <span class="text-xs text-gray-500 transition-transform" :class="expandedActors.has(group.actor_id) ? 'rotate-180' : ''">
+            ▼
+          </span>
+        </div>
+
+        <div v-if="expandedActors.has(group.actor_id)" class="border-t border-gray-700">
+          <div
+            v-for="record in group.records"
+            :key="record.id"
+            class="flex items-center gap-3 px-3 py-2.5 hover:bg-gray-700/30 border-b border-gray-700/50 last:border-none"
+          >
+            <div class="relative w-12 h-12 rounded overflow-hidden bg-gray-900 shrink-0">
               <img
                 :src="`data:image/jpeg;base64,${record.image_blob}`"
-                class="w-12 h-12 object-cover rounded"
+                class="w-full h-full object-cover"
               />
-            </td>
-            <td class="py-2 px-2 text-gray-300 truncate max-w-[200px]" :title="record.video_path">
-              {{ record.video_path || '-' }}
-            </td>
-            <td class="py-2 px-2 text-gray-300">
-              {{ (record.face_confidence * 100).toFixed(1) }}%
-            </td>
-            <td class="py-2 px-2 text-gray-400 text-xs">
-              {{ record.created_at }}
-            </td>
-            <td class="py-2 px-2 text-center">
-              <button
-                @click="deleteRecord(record.id)"
-                class="px-2 py-1 bg-red-600 hover:bg-red-700 rounded text-xs transition-colors"
-              >
-                删除
-              </button>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-
-    <div v-if="totalPages > 1" class="flex items-center justify-center gap-3 shrink-0 py-2">
-      <button
-        @click="currentPage--"
-        :disabled="currentPage <= 1"
-        class="px-3 py-1 bg-gray-700 hover:bg-gray-600 rounded text-sm disabled:opacity-40 transition-colors"
-      >
-        上一页
-      </button>
-      <span class="text-sm text-gray-400">
-        {{ currentPage }} / {{ totalPages }}
-      </span>
-      <button
-        @click="currentPage++"
-        :disabled="currentPage >= totalPages"
-        class="px-3 py-1 bg-gray-700 hover:bg-gray-600 rounded text-sm disabled:opacity-40 transition-colors"
-      >
-        下一页
-      </button>
+              <div class="absolute border border-green-500 pointer-events-none"
+                :style="{
+                  left: record.facial_area_x + 'px',
+                  top: record.facial_area_y + 'px',
+                  width: record.facial_area_w + 'px',
+                  height: record.facial_area_h + 'px'
+                }"
+              ></div>
+            </div>
+            <div class="flex-1 min-w-0">
+              <div class="text-xs text-gray-300 truncate" :title="record.video_path">
+                {{ record.video_path || '-' }}
+              </div>
+              <div class="text-xs text-gray-500 mt-0.5">
+                {{ (record.face_confidence * 100).toFixed(1) }}% · {{ record.created_at }}
+              </div>
+            </div>
+            <button
+              @click="deleteRecord(record)"
+              class="px-2 py-1 bg-red-600 hover:bg-red-700 rounded text-xs transition-colors shrink-0"
+            >
+              删除
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
 
     <div v-if="message" class="fixed bottom-4 right-4 px-4 py-2 rounded-lg shadow-lg text-sm"
@@ -113,7 +118,7 @@
         <div class="flex-1 overflow-y-auto px-5 py-3 min-h-0">
           <div v-for="r in invalidRecords" :key="r.id" class="py-2 border-b border-gray-700/50 last:border-none">
             <div class="text-sm text-gray-300 truncate" :title="r.video_path">{{ r.video_path }}</div>
-            <div class="text-xs text-gray-500 mt-0.5">ID: {{ r.id }} | 录入: {{ r.created_at }}</div>
+            <div class="text-xs text-gray-500 mt-0.5">演员 #{{ r.actor_id }} | ID: {{ r.id }} | 录入: {{ r.created_at }}</div>
           </div>
         </div>
         <div class="px-5 py-3 border-t border-gray-700 flex items-center justify-end gap-2 shrink-0">
@@ -139,26 +144,37 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { getAllRecords, deleteRecord as deleteRecordApi, fileExists } from '../lib/api'
-import type { FaceRecord } from '../lib/types'
+import type { FaceRecord, ActorGroup } from '../lib/types'
 
-const PAGE_SIZE = 15
-
-const records = ref<FaceRecord[]>([])
+const allRecords = ref<FaceRecord[]>([])
 const loading = ref(false)
 const error = ref('')
-const currentPage = ref(1)
 const message = ref('')
 const messageType = ref<'success' | 'error'>('success')
 const showCleanupDialog = ref(false)
 const invalidRecords = ref<FaceRecord[]>([])
 const cleaning = ref(false)
+const expandedActors = ref(new Set<number>())
 
-const totalPages = computed(() => Math.max(1, Math.ceil(records.value.length / PAGE_SIZE)))
-
-const pageRecords = computed(() => {
-  const start = (currentPage.value - 1) * PAGE_SIZE
-  return records.value.slice(start, start + PAGE_SIZE)
+const actorGroups = computed<ActorGroup[]>(() => {
+  const map = new Map<number, FaceRecord[]>()
+  for (const r of allRecords.value) {
+    if (!map.has(r.actor_id)) map.set(r.actor_id, [])
+    map.get(r.actor_id)!.push(r)
+  }
+  const groups: ActorGroup[] = []
+  for (const [actorId, records] of map) {
+    groups.push({
+      actor_id: actorId,
+      records,
+      total_videos: records.length
+    })
+  }
+  groups.sort((a, b) => a.actor_id - b.actor_id)
+  return groups
 })
+
+const totalRecords = computed(() => allRecords.value.length)
 
 onMounted(() => {
   loadRecords()
@@ -168,8 +184,7 @@ async function loadRecords() {
   loading.value = true
   error.value = ''
   try {
-    records.value = await getAllRecords() as FaceRecord[]
-    currentPage.value = 1
+    allRecords.value = await getAllRecords() as FaceRecord[]
   } catch (e: any) {
     error.value = '加载失败: ' + e.message
   } finally {
@@ -177,14 +192,21 @@ async function loadRecords() {
   }
 }
 
-async function deleteRecord(id: number) {
-  if (!confirm('确定要删除该人脸记录吗？')) return
+function toggleActor(actorId: number) {
+  const s = new Set(expandedActors.value)
+  if (s.has(actorId)) {
+    s.delete(actorId)
+  } else {
+    s.add(actorId)
+  }
+  expandedActors.value = s
+}
+
+async function deleteRecord(record: FaceRecord) {
+  if (!confirm(`确定要删除演员 #${record.actor_id} 在"${record.video_path}"中的记录吗？`)) return
   try {
-    await deleteRecordApi(id)
-    records.value = records.value.filter(r => r.id !== id)
-    if (pageRecords.value.length === 0 && currentPage.value > 1) {
-      currentPage.value--
-    }
+    await deleteRecordApi(record.id)
+    allRecords.value = allRecords.value.filter(r => r.id !== record.id)
     showMessage('删除成功', 'success')
   } catch (e: any) {
     showMessage('删除失败: ' + e.message, 'error')
@@ -219,7 +241,7 @@ async function confirmCleanup() {
       await deleteRecordApi(r.id)
       count++
     }
-    records.value = records.value.filter(rec => !invalidRecords.value.some(inv => inv.id === rec.id))
+    allRecords.value = allRecords.value.filter(rec => !invalidRecords.value.some(inv => inv.id === rec.id))
     showCleanupDialog.value = false
     showMessage(`已清理 ${count} 条无效记录`, 'success')
   } catch (e: any) {

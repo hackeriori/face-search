@@ -5,7 +5,8 @@ const api = {
   representImage: (imageBuffer: ArrayBuffer): Promise<any> => ipcRenderer.invoke('api:represent', imageBuffer),
 
   insertFace: (params: {
-    video_path: string
+    actor_id: number
+    video_id: number
     image_blob: ArrayBuffer | Uint8Array
     facial_area_x: number
     facial_area_y: number
@@ -17,6 +18,17 @@ const api = {
 
   searchFaces: (embedding: number[], maxDistance?: number): Promise<any[]> =>
     ipcRenderer.invoke('db:searchFaces', embedding, maxDistance),
+
+  searchMatchingActors: (embedding: number[], maxDistance?: number): Promise<any[]> =>
+    ipcRenderer.invoke('db:searchMatchingActors', embedding, maxDistance),
+
+  findOrCreateVideo: (videoPath: string): Promise<number> =>
+    ipcRenderer.invoke('db:findOrCreateVideo', videoPath),
+
+  createActor: (): Promise<number> => ipcRenderer.invoke('db:createActor'),
+
+  hasFaceRecord: (actorId: number, videoId: number): Promise<boolean> =>
+    ipcRenderer.invoke('db:hasFaceRecord', actorId, videoId),
 
   getAllRecords: (): Promise<any[]> => ipcRenderer.invoke('db:getAllRecords'),
 

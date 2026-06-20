@@ -12,7 +12,8 @@ export async function representImage(imageDataUrl: string): Promise<{ result: De
 }
 
 export async function insertFace(params: {
-  video_path: string
+  actor_id: number
+  video_id: number
   image_blob: ArrayBuffer | Uint8Array
   facial_area_x: number
   facial_area_y: number
@@ -26,6 +27,22 @@ export async function insertFace(params: {
 
 export async function searchFaces(embedding: number[], maxDistance?: number): Promise<SearchResult[]> {
   return window.electronAPI.searchFaces(embedding, maxDistance)
+}
+
+export async function searchMatchingActors(embedding: number[], maxDistance?: number): Promise<any[]> {
+  return window.electronAPI.searchMatchingActors(embedding, maxDistance)
+}
+
+export async function findOrCreateVideo(videoPath: string): Promise<number> {
+  return window.electronAPI.findOrCreateVideo(videoPath)
+}
+
+export async function createActor(): Promise<number> {
+  return window.electronAPI.createActor()
+}
+
+export async function hasFaceRecord(actorId: number, videoId: number): Promise<boolean> {
+  return window.electronAPI.hasFaceRecord(actorId, videoId)
 }
 
 export async function getAllRecords(): Promise<any[]> {

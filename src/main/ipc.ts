@@ -1,5 +1,5 @@
 import { ipcMain, clipboard, dialog, shell, BrowserWindow } from 'electron'
-import { insertFaceRecord, searchSimilarFaces, getAllFaceRecords, deleteFaceRecord } from './database'
+import { insertFaceRecord, searchSimilarFaces, getAllFaceRecords, deleteFaceRecord, searchMatchingActors, findOrCreateVideo, createActor, hasFaceRecord } from './database'
 import { checkApi, representImage } from './faceApi'
 import { MpvPlayer, type Bounds } from './mpv'
 import fs from 'fs'
@@ -23,7 +23,8 @@ export function registerIpcHandlers(ipc: typeof ipcMain) {
   })
 
   ipc.handle('db:insertFace', async (_event, params: {
-    video_path: string
+    actor_id: number
+    video_id: number
     image_blob: ArrayBuffer
     facial_area_x: number
     facial_area_y: number
@@ -35,7 +36,8 @@ export function registerIpcHandlers(ipc: typeof ipcMain) {
     const embeddingBuffer = Buffer.from(new Float32Array(params.embedding).buffer)
     const imageBuffer = Buffer.from(params.image_blob)
     return insertFaceRecord({
-      video_path: params.video_path,
+      actor_id: params.actor_id,
+      video_id: params.video_id,
       image_blob: imageBuffer,
       facial_area_x: params.facial_area_x,
       facial_area_y: params.facial_area_y,
@@ -54,6 +56,27 @@ export function registerIpcHandlers(ipc: typeof ipcMain) {
       image_blob: row.image_blob.toString('base64'),
       similarity: Math.round((1 - row.distance) * 10000) / 100
     }))
+  })
+
+  ipc.handle('db:searchMatchingActors', async (_event, embedding: number[], maxDistance?: number) => {
+    const embeddingBuffer = Buffer.from(new Float32Array(embedding).buffer)
+    const candidates = searchMatchingActors(embeddingBuffer, maxDistance)
+    return candidates.map(c => ({
+      ...c,
+      image_blob: c.image_blob.toString('base64')
+    }))
+  })
+
+  ipc.handle('db:findOrCreateVideo', async (_event, videoPath: string) => {
+    return findOrCreateVideo(videoPath)
+  })
+
+  ipc.handle('db:createActor', async () => {
+    return createActor()
+  })
+
+  ipc.handle('db:hasFaceRecord', async (_event, actorId: number, videoId: number) => {
+    return hasFaceRecord(actorId, videoId)
   })
 
   ipc.handle('db:getAllRecords', async () => {
