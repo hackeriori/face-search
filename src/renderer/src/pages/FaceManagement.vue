@@ -126,6 +126,22 @@
       <img alt="actor" :src="previewImg" class="max-w-[90vw] max-h-[90vh] object-contain rounded-lg" />
     </div>
 
+    <div v-if="showDeleteDialog" class="fixed inset-0 z-50 flex items-center justify-center bg-black/60" @click.self="showDeleteDialog = false">
+      <div class="bg-gray-800 rounded-lg shadow-xl w-[480px] flex flex-col">
+        <div class="px-5 py-4 border-b border-gray-700">
+          <h3 class="text-base font-medium text-gray-200">确认删除</h3>
+        </div>
+        <div class="px-5 py-4">
+          <p class="text-sm text-gray-300">确定要删除此视频记录吗？该操作将删除视频及其关联的所有人脸记录。</p>
+          <p class="text-sm text-gray-400 mt-2 truncate">{{ pendingDelete?.record?.video_path }}</p>
+        </div>
+        <div class="px-5 py-3 border-t border-gray-700 flex items-center justify-end gap-2">
+          <button @click="showDeleteDialog = false" class="px-3 py-1.5 bg-gray-600 hover:bg-gray-500 rounded text-sm transition-colors">取消</button>
+          <button @click="confirmDeleteRecord" class="px-3 py-1.5 bg-red-600 hover:bg-red-500 rounded text-sm transition-colors">确认删除</button>
+        </div>
+      </div>
+    </div>
+
     <div v-if="showCleanupDialog" class="fixed inset-0 z-50 flex items-center justify-center bg-black/60" @click.self="showCleanupDialog = false">
       <div class="bg-gray-800 rounded-lg shadow-xl w-[520px] max-h-[80vh] flex flex-col">
         <div class="px-5 py-4 border-b border-gray-700 shrink-0">
@@ -162,8 +178,8 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import { getAllActorsWithRecords, deleteRecord as deleteRecordApi, deleteVideo, deleteOrphanActors, fileExists, openPath } from '../lib/api'
-import type { ActorGroup } from '../lib/types'
+import { getAllActorsWithRecords, deleteVideo, deleteOrphanActors, fileExists, openPath } from '../lib/api'
+import type { ActorGroup, ActorRecord } from '../lib/types'
 
 const actorGroups = ref<ActorGroup[]>([])
 const loading = ref(false)
@@ -173,6 +189,8 @@ const messageType = ref<'success' | 'error'>('success')
 const showCleanupDialog = ref(false)
 const invalidRecords = ref<{ video_id: number; video_path: string }[]>([])
 const cleaning = ref(false)
+const showDeleteDialog = ref(false)
+const pendingDelete = ref<{ actorId: number; record: ActorRecord } | null>(null)
 const expandedActors = ref(new Set<number>())
 const previewImg = ref('')
 const searchQuery = ref('')
@@ -181,7 +199,8 @@ const filteredActorGroups = computed(() => {
   const q = searchQuery.value.trim().toLowerCase()
   if (!q) return actorGroups.value
   return actorGroups.value.filter(g => {
-    if (g.name && g.name.toLowerCase().includes(q)) return true
+    const displayName = g.name || `演员 #${g.actor_id}`
+    if (displayName.toLowerCase().includes(q)) return true
     return g.records.some(r => r.video_path && r.video_path.toLowerCase().includes(q))
   })
 })
@@ -228,16 +247,19 @@ async function deleteRecord(actorId: number, recordId: number) {
   const group = actorGroups.value.find(g => g.actor_id === actorId)
   const record = group?.records.find(r => r.id === recordId)
   if (!record) return
-  if (!confirm(`确定要删除此记录吗？（视频: ${record.video_path || '-'}）`)) return
+  pendingDelete.value = { actorId, record }
+  showDeleteDialog.value = true
+}
+
+async function confirmDeleteRecord() {
+  if (!pendingDelete.value) return
+  const record = pendingDelete.value.record
   try {
-    await deleteRecordApi(recordId)
-    const g = actorGroups.value.find(g => g.actor_id === actorId)
-    if (g) {
-      g.records = g.records.filter(r => r.id !== recordId)
-      if (g.records.length === 0) {
-        actorGroups.value = actorGroups.value.filter(g => g.actor_id !== actorId)
-      }
-    }
+    await deleteVideo(record.video_id)
+    await deleteOrphanActors()
+    await loadRecords()
+    showDeleteDialog.value = false
+    pendingDelete.value = null
     showMessage('删除成功', 'success')
   } catch (e: any) {
     showMessage('删除失败: ' + e.message, 'error')

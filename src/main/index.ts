@@ -12,8 +12,9 @@ function createWindow() {
     : path.join(__dirname, '../../resources/icon.ico')
 
   mainWindow = new BrowserWindow({
-    width: 1680,
+    width: 1470,
     height: 630,
+    aspectRatio: 21 / 9,
     icon: iconPath,
     webPreferences: {
       preload: path.join(__dirname, '../preload/index.js'),
