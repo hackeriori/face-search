@@ -50,12 +50,14 @@
           class="flex items-center gap-3 p-3 cursor-pointer hover:bg-gray-700/50 transition-colors select-none"
         >
           <img
-            :src="`data:image/jpeg;base64,${group.records[0].image_blob}`"
+            v-if="group.image_blob"
+            :src="`data:image/jpeg;base64,${group.image_blob}`"
             class="w-10 h-10 object-cover rounded shrink-0"
           />
+          <div v-else class="w-10 h-10 rounded shrink-0 bg-gray-700 flex items-center justify-center text-xs text-gray-400">?</div>
           <div class="flex-1 min-w-0">
-            <span class="text-sm font-medium text-gray-200">演员 #{{ group.actor_id }}</span>
-            <span class="text-xs text-gray-500 ml-2">{{ group.total_videos }} 部视频</span>
+            <span class="text-sm font-medium text-gray-200">{{ group.name || `演员 #${group.actor_id}` }}</span>
+            <span class="text-xs text-gray-500 ml-2">{{ group.records.length }} 部视频</span>
           </div>
           <span class="text-xs text-gray-500 transition-transform" :class="expandedActors.has(group.actor_id) ? 'rotate-180' : ''">
             ▼
@@ -68,30 +70,13 @@
             :key="record.id"
             class="flex items-center gap-3 px-3 py-2.5 hover:bg-gray-700/30 border-b border-gray-700/50 last:border-none"
           >
-            <div class="relative w-12 h-12 rounded overflow-hidden bg-gray-900 shrink-0">
-              <img
-                :src="`data:image/jpeg;base64,${record.image_blob}`"
-                class="w-full h-full object-cover"
-              />
-              <div class="absolute border border-green-500 pointer-events-none"
-                :style="{
-                  left: record.facial_area_x + 'px',
-                  top: record.facial_area_y + 'px',
-                  width: record.facial_area_w + 'px',
-                  height: record.facial_area_h + 'px'
-                }"
-              ></div>
-            </div>
             <div class="flex-1 min-w-0">
               <div class="text-xs text-gray-300 truncate" :title="record.video_path">
                 {{ record.video_path || '-' }}
               </div>
-              <div class="text-xs text-gray-500 mt-0.5">
-                {{ (record.face_confidence * 100).toFixed(1) }}% · {{ record.created_at }}
-              </div>
             </div>
             <button
-              @click="deleteRecord(record)"
+              @click="deleteRecord(group.actor_id, record.id)"
               class="px-2 py-1 bg-red-600 hover:bg-red-700 rounded text-xs transition-colors shrink-0"
             >
               删除
@@ -116,9 +101,9 @@
           </p>
         </div>
         <div class="flex-1 overflow-y-auto px-5 py-3 min-h-0">
-          <div v-for="r in invalidRecords" :key="r.id" class="py-2 border-b border-gray-700/50 last:border-none">
+             <div v-for="r in invalidRecords" :key="r.id" class="py-2 border-b border-gray-700/50 last:border-none">
             <div class="text-sm text-gray-300 truncate" :title="r.video_path">{{ r.video_path }}</div>
-            <div class="text-xs text-gray-500 mt-0.5">演员 #{{ r.actor_id }} | ID: {{ r.id }} | 录入: {{ r.created_at }}</div>
+            <div class="text-xs text-gray-500 mt-0.5">演员 #{{ r.actor_id }} | ID: {{ r.id }}</div>
           </div>
         </div>
         <div class="px-5 py-3 border-t border-gray-700 flex items-center justify-end gap-2 shrink-0">
@@ -142,39 +127,21 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
-import { getAllRecords, deleteRecord as deleteRecordApi, fileExists } from '../lib/api'
-import type { FaceRecord, ActorGroup } from '../lib/types'
+import { ref, onMounted } from 'vue'
+import { getAllActorsWithRecords, deleteRecord as deleteRecordApi, fileExists } from '../lib/api'
+import type { ActorGroup } from '../lib/types'
 
-const allRecords = ref<FaceRecord[]>([])
+const actorGroups = ref<ActorGroup[]>([])
 const loading = ref(false)
 const error = ref('')
 const message = ref('')
 const messageType = ref<'success' | 'error'>('success')
 const showCleanupDialog = ref(false)
-const invalidRecords = ref<FaceRecord[]>([])
+const invalidRecords = ref<{ id: number; video_path: string; actor_id: number }[]>([])
 const cleaning = ref(false)
 const expandedActors = ref(new Set<number>())
 
-const actorGroups = computed<ActorGroup[]>(() => {
-  const map = new Map<number, FaceRecord[]>()
-  for (const r of allRecords.value) {
-    if (!map.has(r.actor_id)) map.set(r.actor_id, [])
-    map.get(r.actor_id)!.push(r)
-  }
-  const groups: ActorGroup[] = []
-  for (const [actorId, records] of map) {
-    groups.push({
-      actor_id: actorId,
-      records,
-      total_videos: records.length
-    })
-  }
-  groups.sort((a, b) => a.actor_id - b.actor_id)
-  return groups
-})
-
-const totalRecords = computed(() => allRecords.value.length)
+const totalRecords = ref(0)
 
 onMounted(() => {
   loadRecords()
@@ -184,7 +151,9 @@ async function loadRecords() {
   loading.value = true
   error.value = ''
   try {
-    allRecords.value = await getAllRecords() as FaceRecord[]
+    const data = await getAllActorsWithRecords()
+    actorGroups.value = data
+    totalRecords.value = data.reduce((sum, g) => sum + g.records.length, 0)
   } catch (e: any) {
     error.value = '加载失败: ' + e.message
   } finally {
@@ -202,11 +171,21 @@ function toggleActor(actorId: number) {
   expandedActors.value = s
 }
 
-async function deleteRecord(record: FaceRecord) {
-  if (!confirm(`确定要删除演员 #${record.actor_id} 在"${record.video_path}"中的记录吗？`)) return
+async function deleteRecord(actorId: number, recordId: number) {
+  const group = actorGroups.value.find(g => g.actor_id === actorId)
+  const record = group?.records.find(r => r.id === recordId)
+  if (!record) return
+  if (!confirm(`确定要删除此记录吗？（视频: ${record.video_path || '-'}）`)) return
   try {
-    await deleteRecordApi(record.id)
-    allRecords.value = allRecords.value.filter(r => r.id !== record.id)
+    await deleteRecordApi(recordId)
+    const g = actorGroups.value.find(g => g.actor_id === actorId)
+    if (g) {
+      g.records = g.records.filter(r => r.id !== recordId)
+      if (g.records.length === 0) {
+        actorGroups.value = actorGroups.value.filter(g => g.actor_id !== actorId)
+      }
+    }
+    totalRecords.value = actorGroups.value.reduce((sum, g) => sum + g.records.length, 0)
     showMessage('删除成功', 'success')
   } catch (e: any) {
     showMessage('删除失败: ' + e.message, 'error')
@@ -215,12 +194,14 @@ async function deleteRecord(record: FaceRecord) {
 
 async function checkInvalidRecords() {
   try {
-    const all = await getAllRecords() as FaceRecord[]
-    const invalid: FaceRecord[] = []
-    for (const r of all) {
-      if (!r.video_path) continue
-      const exists = await fileExists(r.video_path)
-      if (!exists) invalid.push(r)
+    const groups = await getAllActorsWithRecords()
+    const invalid: { id: number; video_path: string; actor_id: number }[] = []
+    for (const g of groups) {
+      for (const r of g.records) {
+        if (!r.video_path) continue
+        const exists = await fileExists(r.video_path)
+        if (!exists) invalid.push({ id: r.id, video_path: r.video_path, actor_id: g.actor_id })
+      }
     }
     if (invalid.length === 0) {
       showMessage('所有记录对应的文件均存在', 'success')
@@ -241,7 +222,7 @@ async function confirmCleanup() {
       await deleteRecordApi(r.id)
       count++
     }
-    allRecords.value = allRecords.value.filter(rec => !invalidRecords.value.some(inv => inv.id === rec.id))
+    await loadRecords()
     showCleanupDialog.value = false
     showMessage(`已清理 ${count} 条无效记录`, 'success')
   } catch (e: any) {

@@ -25,6 +25,12 @@ export interface ApiCheckResult {
 export interface ActorInfo {
   id: number
   name: string | null
+  image_blob: string | null
+  facial_area_x: number | null
+  facial_area_y: number | null
+  facial_area_w: number | null
+  facial_area_h: number | null
+  face_confidence: number | null
   created_at: string
 }
 
@@ -50,7 +56,6 @@ export interface SearchResult {
   facial_area_w: number
   facial_area_h: number
   face_confidence: number
-  created_at: string
   distance: number
   similarity: number
 }
@@ -66,19 +71,24 @@ export interface FaceRecord {
   actor_id: number
   video_id: number
   video_path: string
-  image_blob: string
-  facial_area_x: number
-  facial_area_y: number
-  facial_area_w: number
-  facial_area_h: number
-  face_confidence: number
-  created_at: string
+}
+
+export interface ActorRecord {
+  id: number
+  video_id: number
+  video_path: string
 }
 
 export interface ActorGroup {
   actor_id: number
-  records: FaceRecord[]
-  total_videos: number
+  name: string | null
+  image_blob: string | null
+  facial_area_x: number | null
+  facial_area_y: number | null
+  facial_area_w: number | null
+  facial_area_h: number | null
+  face_confidence: number | null
+  records: ActorRecord[]
 }
 
 export interface MpvBounds {
@@ -98,9 +108,9 @@ export interface MpvStatusInfo {
 export interface ElectronAPI {
   checkApi: () => Promise<ApiCheckResult>
   representImage: (imageBuffer: ArrayBuffer) => Promise<{ result: DetectedFace[] }>
-  insertFace: (params: {
-    actor_id: number
-    video_id: number
+  insertFaceRecord: (actorId: number, videoId: number) => Promise<number>
+  createActor: (params: {
+    name?: string
     image_blob: ArrayBuffer | Uint8Array
     facial_area_x: number
     facial_area_y: number
@@ -111,10 +121,10 @@ export interface ElectronAPI {
   }) => Promise<number>
   searchFaces: (embedding: number[], maxDistance?: number) => Promise<SearchResult[]>
   getAllRecords: () => Promise<FaceRecord[]>
+  getAllActorsWithRecords: () => Promise<ActorGroup[]>
   deleteRecord: (id: number) => Promise<boolean>
   searchMatchingActors: (embedding: number[], maxDistance?: number) => Promise<ActorMatchCandidate[]>
   findOrCreateVideo: (videoPath: string) => Promise<number>
-  createActor: () => Promise<number>
   hasFaceRecord: (actorId: number, videoId: number) => Promise<boolean>
   readClipboardImage: () => Promise<{ buffer: ArrayBuffer; dataUrl: string } | null>
   openFile: (options?: any) => Promise<{ canceled: boolean; filePaths: string[] }>

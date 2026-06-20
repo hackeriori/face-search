@@ -1,4 +1,4 @@
-import type { ApiCheckResult, SearchResult, DetectedFace } from './types'
+import type { ApiCheckResult, SearchResult, DetectedFace, FaceRecord, ActorGroup } from './types'
 
 export async function checkApi(): Promise<ApiCheckResult> {
   return window.electronAPI.checkApi()
@@ -11,9 +11,12 @@ export async function representImage(imageDataUrl: string): Promise<{ result: De
   return window.electronAPI.representImage(buffer)
 }
 
-export async function insertFace(params: {
-  actor_id: number
-  video_id: number
+export async function insertFaceRecord(actorId: number, videoId: number): Promise<number> {
+  return window.electronAPI.insertFaceRecord(actorId, videoId)
+}
+
+export async function createActor(params: {
+  name?: string
   image_blob: ArrayBuffer | Uint8Array
   facial_area_x: number
   facial_area_y: number
@@ -22,7 +25,7 @@ export async function insertFace(params: {
   face_confidence: number
   embedding: number[]
 }): Promise<number> {
-  return window.electronAPI.insertFace(params)
+  return window.electronAPI.createActor(params)
 }
 
 export async function searchFaces(embedding: number[], maxDistance?: number): Promise<SearchResult[]> {
@@ -37,16 +40,16 @@ export async function findOrCreateVideo(videoPath: string): Promise<number> {
   return window.electronAPI.findOrCreateVideo(videoPath)
 }
 
-export async function createActor(): Promise<number> {
-  return window.electronAPI.createActor()
-}
-
 export async function hasFaceRecord(actorId: number, videoId: number): Promise<boolean> {
   return window.electronAPI.hasFaceRecord(actorId, videoId)
 }
 
-export async function getAllRecords(): Promise<any[]> {
+export async function getAllRecords(): Promise<FaceRecord[]> {
   return window.electronAPI.getAllRecords()
+}
+
+export async function getAllActorsWithRecords(): Promise<ActorGroup[]> {
+  return window.electronAPI.getAllActorsWithRecords()
 }
 
 export async function deleteRecord(id: number): Promise<boolean> {

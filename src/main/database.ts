@@ -16,6 +16,13 @@ export function initDatabase(dbPath: string): Database.Database {
     CREATE TABLE IF NOT EXISTS actors (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       name TEXT,
+      image_blob BLOB,
+      facial_area_x INTEGER,
+      facial_area_y INTEGER,
+      facial_area_w INTEGER,
+      facial_area_h INTEGER,
+      face_confidence REAL,
+      embedding F32_BLOB,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     );
 
@@ -28,15 +35,7 @@ export function initDatabase(dbPath: string): Database.Database {
     CREATE TABLE IF NOT EXISTS face_records (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       actor_id INTEGER NOT NULL REFERENCES actors(id) ON DELETE CASCADE,
-      video_id INTEGER NOT NULL REFERENCES videos(id) ON DELETE CASCADE,
-      image_blob BLOB NOT NULL,
-      facial_area_x INTEGER NOT NULL,
-      facial_area_y INTEGER NOT NULL,
-      facial_area_w INTEGER NOT NULL,
-      facial_area_h INTEGER NOT NULL,
-      face_confidence REAL NOT NULL,
-      embedding F32_BLOB NOT NULL,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      video_id INTEGER NOT NULL REFERENCES videos(id) ON DELETE CASCADE
     );
 
     CREATE INDEX IF NOT EXISTS idx_face_records_actor ON face_records(actor_id);
@@ -83,19 +82,10 @@ export interface FaceRecord {
   actor_id: number
   video_id: number
   video_path: string
-  image_blob: Buffer
-  facial_area_x: number
-  facial_area_y: number
-  facial_area_w: number
-  facial_area_h: number
-  face_confidence: number
-  embedding: Buffer
-  created_at: string
 }
 
-export interface FaceInsertParams {
-  actor_id: number
-  video_id: number
+export interface CreateActorParams {
+  name?: string
   image_blob: Buffer
   facial_area_x: number
   facial_area_y: number
@@ -116,13 +106,57 @@ export interface ActorMatchCandidate {
   facial_area_h: number
 }
 
+export interface ActorWithRecords {
+  actor_id: number
+  name: string | null
+  image_blob: Buffer | null
+  facial_area_x: number | null
+  facial_area_y: number | null
+  facial_area_w: number | null
+  facial_area_h: number | null
+  face_confidence: number | null
+  records: {
+    id: number
+    video_id: number
+    video_path: string
+  }[]
+}
+
 // --- Actors ---
 
-export function createActor(name?: string): number {
+export function createActor(params: CreateActorParams): number {
   if (!db) throw new Error('Database not initialized')
-  const stmt = db.prepare('INSERT INTO actors (name) VALUES (?)')
-  const result = stmt.run(name || null)
+  const stmt = db.prepare(`
+    INSERT INTO actors (name, image_blob, facial_area_x, facial_area_y, facial_area_w, facial_area_h, face_confidence, embedding)
+    VALUES (@name, @image_blob, @facial_area_x, @facial_area_y, @facial_area_w, @facial_area_h, @face_confidence, @embedding)
+  `)
+  const result = stmt.run({
+    name: params.name || null,
+    image_blob: params.image_blob,
+    facial_area_x: params.facial_area_x,
+    facial_area_y: params.facial_area_y,
+    facial_area_w: params.facial_area_w,
+    facial_area_h: params.facial_area_h,
+    face_confidence: params.face_confidence,
+    embedding: params.embedding
+  })
   return Number(result.lastInsertRowid)
+}
+
+export function getActorById(actorId: number): {
+  id: number
+  name: string | null
+  image_blob: Buffer | null
+  facial_area_x: number | null
+  facial_area_y: number | null
+  facial_area_w: number | null
+  facial_area_h: number | null
+  face_confidence: number | null
+  embedding: Buffer | null
+  created_at: string
+} | undefined {
+  if (!db) throw new Error('Database not initialized')
+  return db.prepare('SELECT * FROM actors WHERE id = ?').get(actorId) as any
 }
 
 // --- Videos ---
@@ -138,23 +172,10 @@ export function findOrCreateVideo(videoPath: string): number {
 
 // --- Face Records ---
 
-export function insertFaceRecord(params: FaceInsertParams): number {
+export function insertFaceRecord(actorId: number, videoId: number): number {
   if (!db) throw new Error('Database not initialized')
-  const stmt = db.prepare(`
-    INSERT INTO face_records (actor_id, video_id, image_blob, facial_area_x, facial_area_y, facial_area_w, facial_area_h, face_confidence, embedding)
-    VALUES (@actor_id, @video_id, @image_blob, @facial_area_x, @facial_area_y, @facial_area_w, @facial_area_h, @face_confidence, @embedding)
-  `)
-  const result = stmt.run({
-    actor_id: params.actor_id,
-    video_id: params.video_id,
-    image_blob: params.image_blob,
-    facial_area_x: params.facial_area_x,
-    facial_area_y: params.facial_area_y,
-    facial_area_w: params.facial_area_w,
-    facial_area_h: params.facial_area_h,
-    face_confidence: params.face_confidence,
-    embedding: params.embedding
-  })
+  const stmt = db.prepare('INSERT INTO face_records (actor_id, video_id) VALUES (?, ?)')
+  const result = stmt.run(actorId, videoId)
   return Number(result.lastInsertRowid)
 }
 
@@ -168,15 +189,16 @@ export function searchMatchingActors(embedding: Buffer, maxDistance: number = 0.
   if (!db) throw new Error('Database not initialized')
   const rows = db.prepare(`
     SELECT
-      fr.actor_id,
-      fr.image_blob,
-      fr.facial_area_x,
-      fr.facial_area_y,
-      fr.facial_area_w,
-      fr.facial_area_h,
-      vec_distance_cosine(fr.embedding, ?) AS distance
-    FROM face_records fr
-    WHERE vec_distance_cosine(fr.embedding, ?) <= ?
+      a.id AS actor_id,
+      a.image_blob,
+      a.facial_area_x,
+      a.facial_area_y,
+      a.facial_area_w,
+      a.facial_area_h,
+      vec_distance_cosine(a.embedding, ?) AS distance
+    FROM actors a
+    WHERE a.embedding IS NOT NULL
+      AND vec_distance_cosine(a.embedding, ?) <= ?
     ORDER BY distance ASC
     LIMIT 50
   `).all(embedding, embedding, maxDistance) as any[]
@@ -204,13 +226,14 @@ export function searchSimilarFaces(embedding: Buffer, maxDistance: number = 0.5)
   const rows = db.prepare(`
     SELECT
       fr.id, fr.actor_id, fr.video_id, v.path AS video_path,
-      fr.image_blob, fr.facial_area_x, fr.facial_area_y,
-      fr.facial_area_w, fr.facial_area_h, fr.face_confidence,
-      fr.created_at,
-      vec_distance_cosine(fr.embedding, ?) AS distance
-    FROM face_records fr
+      a.image_blob, a.facial_area_x, a.facial_area_y,
+      a.facial_area_w, a.facial_area_h, a.face_confidence,
+      vec_distance_cosine(a.embedding, ?) AS distance
+    FROM actors a
+    JOIN face_records fr ON fr.actor_id = a.id
     JOIN videos v ON v.id = fr.video_id
-    WHERE vec_distance_cosine(fr.embedding, ?) <= ?
+    WHERE a.embedding IS NOT NULL
+      AND vec_distance_cosine(a.embedding, ?) <= ?
     ORDER BY distance ASC
     LIMIT 50
   `).all(embedding, embedding, maxDistance)
@@ -221,20 +244,62 @@ export function searchSimilarFaces(embedding: Buffer, maxDistance: number = 0.5)
 export function getAllFaceRecords(): FaceRecord[] {
   if (!db) throw new Error('Database not initialized')
   return db.prepare(`
-    SELECT fr.*, v.path AS video_path
+    SELECT fr.id, fr.actor_id, fr.video_id, v.path AS video_path
     FROM face_records fr
     JOIN videos v ON v.id = fr.video_id
-    ORDER BY fr.created_at DESC
+    ORDER BY fr.id DESC
   `).all() as FaceRecord[]
+}
+
+export function getAllActorsWithRecords(): any[] {
+  if (!db) throw new Error('Database not initialized')
+  const rows = db.prepare(`
+    SELECT
+      a.id AS actor_id,
+      a.name,
+      a.image_blob,
+      a.facial_area_x,
+      a.facial_area_y,
+      a.facial_area_w,
+      a.facial_area_h,
+      a.face_confidence,
+      fr.id AS record_id,
+      fr.video_id,
+      v.path AS video_path
+    FROM actors a
+    LEFT JOIN face_records fr ON fr.actor_id = a.id
+    LEFT JOIN videos v ON v.id = fr.video_id
+    ORDER BY a.id
+  `).all() as any[]
+
+  const actorMap = new Map<number, any>()
+  for (const row of rows) {
+    if (!actorMap.has(row.actor_id)) {
+      actorMap.set(row.actor_id, {
+        actor_id: row.actor_id,
+        name: row.name,
+        image_blob: row.image_blob,
+        facial_area_x: row.facial_area_x,
+        facial_area_y: row.facial_area_y,
+        facial_area_w: row.facial_area_w,
+        facial_area_h: row.facial_area_h,
+        face_confidence: row.face_confidence,
+        records: []
+      })
+    }
+    if (row.record_id !== null) {
+      actorMap.get(row.actor_id).records.push({
+        id: row.record_id,
+        video_id: row.video_id,
+        video_path: row.video_path
+      })
+    }
+  }
+  return Array.from(actorMap.values())
 }
 
 export function deleteFaceRecord(id: number): boolean {
   if (!db) throw new Error('Database not initialized')
   const result = db.prepare('DELETE FROM face_records WHERE id = ?').run(id)
   return result.changes > 0
-}
-
-export function getActorById(actorId: number): { id: number; name: string | null; created_at: string } | undefined {
-  if (!db) throw new Error('Database not initialized')
-  return db.prepare('SELECT * FROM actors WHERE id = ?').get(actorId) as any
 }

@@ -47,7 +47,12 @@
           <div v-else class="flex-1 flex items-center justify-center text-gray-500 text-sm">
             暂无图片，请截取视频帧或选择图片
           </div>
-          <div class="mt-2 flex gap-2 justify-end">
+          <div class="mt-2 flex gap-2">
+            <input
+              v-model="actorName"
+              placeholder="演员姓名（新建时使用）"
+              class="flex-1 px-3 py-1.5 bg-gray-700 border border-gray-600 rounded text-sm text-gray-200 placeholder-gray-500 outline-none focus:border-blue-500 transition-colors"
+            />
             <button
               @click="saveFace"
               :disabled="!videoPath || !faces.length || !selectedFace || saving"
@@ -133,8 +138,8 @@
 import { ref, computed, nextTick } from 'vue'
 import VideoPlayer from '../components/VideoPlayer.vue'
 import ImageInput from '../components/ImageInput.vue'
-import { representImage, insertFace, searchMatchingActors, findOrCreateVideo, createActor, hasFaceRecord } from '../lib/api'
-import type { DetectedFace, FaceArea, ActorMatchCandidate } from '../lib/types'
+import { representImage, insertFaceRecord, searchMatchingActors, findOrCreateVideo, createActor, hasFaceRecord } from '../lib/api'
+import type { DetectedFace, ActorMatchCandidate } from '../lib/types'
 
 const videoPath = ref('')
 const currentImage = ref<string | null>(null)
@@ -145,6 +150,7 @@ const videoPlayerRef = ref<InstanceType<typeof VideoPlayer> | null>(null)
 const imageInputRef = ref<InstanceType<typeof ImageInput> | null>(null)
 const faceCanvas = ref<HTMLCanvasElement | null>(null)
 const displayImage = ref<HTMLImageElement | null>(null)
+const actorName = ref('')
 const saving = ref(false)
 const message = ref('')
 const messageType = ref<'success' | 'error'>('success')
@@ -186,10 +192,10 @@ async function onImageSelected(data: { dataUrl: string; buffer: ArrayBuffer }) {
 
 const dialogPositionStyle = computed(() => {
   const el = imageContainer.value
-  if (!el) return {}
+  if (!el) return {} as any
   const rect = el.getBoundingClientRect()
   return {
-    position: 'fixed',
+    position: 'fixed' as const,
     left: `${rect.left}px`,
     top: `${rect.top}px`,
     width: `${rect.width}px`,
@@ -283,10 +289,31 @@ function onCanvasClick(event: MouseEvent) {
   }
 }
 
-async function resolveActorByDialog(embedding: number[]): Promise<number> {
+async function resolveActorByDialog(
+  embedding: number[],
+  name: string,
+  faceData: {
+    image_blob: ArrayBuffer | Uint8Array
+    facial_area_x: number
+    facial_area_y: number
+    facial_area_w: number
+    facial_area_h: number
+    face_confidence: number
+    embedding: number[]
+  }
+): Promise<number> {
   const candidates = await searchMatchingActors(embedding)
   if (candidates.length === 0) {
-    return createActor()
+    return createActor({
+      name: name || undefined,
+      image_blob: faceData.image_blob,
+      facial_area_x: faceData.facial_area_x,
+      facial_area_y: faceData.facial_area_y,
+      facial_area_w: faceData.facial_area_w,
+      facial_area_h: faceData.facial_area_h,
+      face_confidence: faceData.face_confidence,
+      embedding: faceData.embedding
+    })
   }
 
   actorCandidates.value = candidates
@@ -306,7 +333,16 @@ async function resolveActorByDialog(embedding: number[]): Promise<number> {
       if (actorId !== null) {
         resolve(actorId)
       } else {
-        createActor().then(resolve)
+        createActor({
+          name: name || undefined,
+          image_blob: faceData.image_blob,
+          facial_area_x: faceData.facial_area_x,
+          facial_area_y: faceData.facial_area_y,
+          facial_area_w: faceData.facial_area_w,
+          facial_area_h: faceData.facial_area_h,
+          face_confidence: faceData.face_confidence,
+          embedding: faceData.embedding
+        }).then(resolve)
       }
     }
   })
@@ -349,7 +385,19 @@ async function saveFace() {
 
     let actorId: number
     try {
-      actorId = await resolveActorByDialog([...face.embedding])
+      actorId = await resolveActorByDialog(
+        [...face.embedding],
+        actorName.value,
+        {
+          image_blob: safeBlob,
+          facial_area_x: face.facial_area.x,
+          facial_area_y: face.facial_area.y,
+          facial_area_w: face.facial_area.w,
+          facial_area_h: face.facial_area.h,
+          face_confidence: face.face_confidence,
+          embedding: [...face.embedding]
+        }
+      )
     } catch {
       return
     }
@@ -361,17 +409,7 @@ async function saveFace() {
       return
     }
 
-    await insertFace({
-      actor_id: actorId,
-      video_id: videoId,
-      image_blob: safeBlob,
-      facial_area_x: face.facial_area.x,
-      facial_area_y: face.facial_area.y,
-      facial_area_w: face.facial_area.w,
-      facial_area_h: face.facial_area.h,
-      face_confidence: face.face_confidence,
-      embedding: [...face.embedding]
-    })
+    await insertFaceRecord(actorId, videoId)
     showMessage('人脸保存成功', 'success')
   } catch (e: any) {
     showMessage('保存失败: ' + e.message, 'error')

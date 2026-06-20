@@ -34,7 +34,6 @@
               <button @click="openVideo(item.video_path)" class="text-blue-400 hover:text-blue-300 truncate min-w-0">
                 {{ item.video_path || '(无视频)' }}
               </button>
-              <span class="text-gray-600 shrink-0">{{ formatDate(item.created_at) }}</span>
             </div>
           </div>
         </div>
@@ -78,18 +77,6 @@ function getSimilarityClass(similarity: number): string {
   if (similarity >= 70) return 'bg-blue-600 text-white'
   if (similarity >= 50) return 'bg-yellow-600 text-white'
   return 'bg-red-600 text-white'
-}
-
-function formatDate(dateStr: string): string {
-  if (!dateStr) return ''
-  const d = new Date(dateStr)
-  return d.toLocaleString('zh-CN', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit'
-  })
 }
 
 function openVideo(filePath: string) {

@@ -4,9 +4,11 @@ const api = {
   checkApi: (): Promise<any> => ipcRenderer.invoke('api:check'),
   representImage: (imageBuffer: ArrayBuffer): Promise<any> => ipcRenderer.invoke('api:represent', imageBuffer),
 
-  insertFace: (params: {
-    actor_id: number
-    video_id: number
+  insertFaceRecord: (actorId: number, videoId: number): Promise<number> =>
+    ipcRenderer.invoke('db:insertFaceRecord', actorId, videoId),
+
+  createActor: (params: {
+    name?: string
     image_blob: ArrayBuffer | Uint8Array
     facial_area_x: number
     facial_area_y: number
@@ -14,7 +16,7 @@ const api = {
     facial_area_h: number
     face_confidence: number
     embedding: number[]
-  }): Promise<number> => ipcRenderer.invoke('db:insertFace', params),
+  }): Promise<number> => ipcRenderer.invoke('db:createActor', params),
 
   searchFaces: (embedding: number[], maxDistance?: number): Promise<any[]> =>
     ipcRenderer.invoke('db:searchFaces', embedding, maxDistance),
@@ -25,12 +27,12 @@ const api = {
   findOrCreateVideo: (videoPath: string): Promise<number> =>
     ipcRenderer.invoke('db:findOrCreateVideo', videoPath),
 
-  createActor: (): Promise<number> => ipcRenderer.invoke('db:createActor'),
-
   hasFaceRecord: (actorId: number, videoId: number): Promise<boolean> =>
     ipcRenderer.invoke('db:hasFaceRecord', actorId, videoId),
 
   getAllRecords: (): Promise<any[]> => ipcRenderer.invoke('db:getAllRecords'),
+
+  getAllActorsWithRecords: (): Promise<any[]> => ipcRenderer.invoke('db:getAllActorsWithRecords'),
 
   deleteRecord: (id: number): Promise<boolean> => ipcRenderer.invoke('db:deleteRecord', id),
 

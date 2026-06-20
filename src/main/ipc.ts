@@ -1,5 +1,5 @@
 import { ipcMain, clipboard, dialog, shell, BrowserWindow } from 'electron'
-import { insertFaceRecord, searchSimilarFaces, getAllFaceRecords, deleteFaceRecord, searchMatchingActors, findOrCreateVideo, createActor, hasFaceRecord } from './database'
+import { insertFaceRecord, searchSimilarFaces, getAllFaceRecords, deleteFaceRecord, searchMatchingActors, findOrCreateVideo, createActor, hasFaceRecord, getAllActorsWithRecords } from './database'
 import { checkApi, representImage } from './faceApi'
 import { MpvPlayer, type Bounds } from './mpv'
 import fs from 'fs'
@@ -22,9 +22,12 @@ export function registerIpcHandlers(ipc: typeof ipcMain) {
     return representImage(buffer)
   })
 
-  ipc.handle('db:insertFace', async (_event, params: {
-    actor_id: number
-    video_id: number
+  ipc.handle('db:insertFaceRecord', async (_event, actorId: number, videoId: number) => {
+    return insertFaceRecord(actorId, videoId)
+  })
+
+  ipc.handle('db:createActor', async (_event, params: {
+    name?: string
     image_blob: ArrayBuffer
     facial_area_x: number
     facial_area_y: number
@@ -35,9 +38,8 @@ export function registerIpcHandlers(ipc: typeof ipcMain) {
   }) => {
     const embeddingBuffer = Buffer.from(new Float32Array(params.embedding).buffer)
     const imageBuffer = Buffer.from(params.image_blob)
-    return insertFaceRecord({
-      actor_id: params.actor_id,
-      video_id: params.video_id,
+    return createActor({
+      name: params.name,
       image_blob: imageBuffer,
       facial_area_x: params.facial_area_x,
       facial_area_y: params.facial_area_y,
@@ -71,8 +73,12 @@ export function registerIpcHandlers(ipc: typeof ipcMain) {
     return findOrCreateVideo(videoPath)
   })
 
-  ipc.handle('db:createActor', async () => {
-    return createActor()
+  ipc.handle('db:getAllActorsWithRecords', async () => {
+    const actors = getAllActorsWithRecords()
+    return actors.map((actor: any) => ({
+      ...actor,
+      image_blob: actor.image_blob ? actor.image_blob.toString('base64') : null
+    }))
   })
 
   ipc.handle('db:hasFaceRecord', async (_event, actorId: number, videoId: number) => {
@@ -80,11 +86,7 @@ export function registerIpcHandlers(ipc: typeof ipcMain) {
   })
 
   ipc.handle('db:getAllRecords', async () => {
-    const rows = getAllFaceRecords()
-    return rows.map((row: any) => ({
-      ...row,
-      image_blob: row.image_blob.toString('base64')
-    }))
+    return getAllFaceRecords()
   })
 
   ipc.handle('db:deleteRecord', async (_event, id: number) => {
