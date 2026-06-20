@@ -30,11 +30,7 @@ const api = {
   hasFaceRecord: (actorId: number, videoId: number): Promise<boolean> =>
     ipcRenderer.invoke('db:hasFaceRecord', actorId, videoId),
 
-  getAllRecords: (): Promise<any[]> => ipcRenderer.invoke('db:getAllRecords'),
-
   getAllActorsWithRecords: (): Promise<any[]> => ipcRenderer.invoke('db:getAllActorsWithRecords'),
-
-  deleteRecord: (id: number): Promise<boolean> => ipcRenderer.invoke('db:deleteRecord', id),
 
   deleteVideo: (videoId: number): Promise<boolean> => ipcRenderer.invoke('db:deleteVideo', videoId),
 
@@ -52,8 +48,6 @@ const api = {
   fileExists: (filePath: string): Promise<boolean> => ipcRenderer.invoke('file:exists', filePath),
 
   openPath: (filePath: string): Promise<string> => ipcRenderer.invoke('shell:openPath', filePath),
-
-  readFileBuffer: (filePath: string): Promise<ArrayBuffer> => ipcRenderer.invoke('file:readBuffer', filePath),
 
   // --- MPV Player API ---
   mpvOpen: (filePath: string, bounds?: { x: number; y: number; w: number; h: number }): Promise<void> =>

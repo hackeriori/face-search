@@ -95,7 +95,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, watch, onMounted, onUnmounted, nextTick, onBeforeUnmount } from 'vue'
+import { ref, reactive, watch, onMounted, onUnmounted, nextTick } from 'vue'
 import type { MpvStatusInfo, MpvBounds } from '../lib/types'
 
 const props = defineProps<{ videoPath: string }>()
@@ -111,8 +111,6 @@ const status = reactive<MpvStatusInfo>({
   timePos: 0,
   filename: '',
 })
-let isSeeking = false
-
 let resizeObserver: ResizeObserver | null = null
 
 onMounted(() => {
@@ -175,13 +173,11 @@ watch(() => props.videoPath, async (path) => {
 })
 
 function onSeekInput(event: Event) {
-  isSeeking = true
   const target = event.target as HTMLInputElement
   status.timePos = parseFloat(target.value)
 }
 
 function onSeekChange(event: Event) {
-  isSeeking = false
   const target = event.target as HTMLInputElement
   const time = parseFloat(target.value)
   status.timePos = time

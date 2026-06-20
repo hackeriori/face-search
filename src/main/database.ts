@@ -104,22 +104,6 @@ export interface ActorMatchCandidate {
   facial_area_h: number
 }
 
-export interface ActorWithRecords {
-  actor_id: number
-  name: string | null
-  image_blob: Buffer | null
-  facial_area_x: number | null
-  facial_area_y: number | null
-  facial_area_w: number | null
-  facial_area_h: number | null
-  face_confidence: number | null
-  records: {
-    id: number
-    video_id: number
-    video_path: string
-  }[]
-}
-
 // --- Actors ---
 
 export function createActor(params: CreateActorParams): number {
@@ -139,21 +123,6 @@ export function createActor(params: CreateActorParams): number {
     embedding: params.embedding
   })
   return Number(result.lastInsertRowid)
-}
-
-export function getActorById(actorId: number): {
-  id: number
-  name: string | null
-  image_blob: Buffer | null
-  facial_area_x: number | null
-  facial_area_y: number | null
-  facial_area_w: number | null
-  facial_area_h: number | null
-  face_confidence: number | null
-  embedding: Buffer | null
-} | undefined {
-  if (!db) throw new Error('Database not initialized')
-  return db.prepare('SELECT * FROM actors WHERE id = ?').get(actorId) as any
 }
 
 // --- Videos ---

@@ -1,5 +1,5 @@
 import { ipcMain, clipboard, dialog, shell, BrowserWindow } from 'electron'
-import { insertFaceRecord, searchSimilarFaces, getAllFaceRecords, deleteFaceRecord, deleteVideo, deleteOrphanActors, searchMatchingActors, findOrCreateVideo, createActor, hasFaceRecord, getAllActorsWithRecords } from './database'
+import { insertFaceRecord, searchSimilarFaces, deleteVideo, deleteOrphanActors, searchMatchingActors, findOrCreateVideo, createActor, hasFaceRecord, getAllActorsWithRecords } from './database'
 import { checkApi, representImage } from './faceApi'
 import { MpvPlayer, type Bounds } from './mpv'
 import fs from 'fs'
@@ -85,14 +85,6 @@ export function registerIpcHandlers(ipc: typeof ipcMain) {
     return hasFaceRecord(actorId, videoId)
   })
 
-  ipc.handle('db:getAllRecords', async () => {
-    return getAllFaceRecords()
-  })
-
-  ipc.handle('db:deleteRecord', async (_event, id: number) => {
-    return deleteFaceRecord(id)
-  })
-
   ipc.handle('db:deleteVideo', async (_event, videoId: number) => {
     return deleteVideo(videoId)
   })
@@ -160,13 +152,6 @@ export function registerIpcHandlers(ipc: typeof ipcMain) {
 
   ipc.handle('shell:openPath', async (_event, filePath: string) => {
     return shell.openPath(filePath)
-  })
-
-  ipc.handle('file:readBuffer', async (_event, filePath: string) => {
-    const buffer = fs.readFileSync(filePath)
-    const arrayBuffer = new ArrayBuffer(buffer.length)
-    new Uint8Array(arrayBuffer).set(buffer)
-    return arrayBuffer
   })
 
   // --- MPV Player IPC ---

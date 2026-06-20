@@ -1,4 +1,4 @@
-import type { ApiCheckResult, SearchResult, DetectedFace, FaceRecord, ActorGroup } from './types'
+import type { ApiCheckResult, SearchResult, DetectedFace, ActorGroup } from './types'
 
 export async function checkApi(): Promise<ApiCheckResult> {
   return window.electronAPI.checkApi()
@@ -44,16 +44,8 @@ export async function hasFaceRecord(actorId: number, videoId: number): Promise<b
   return window.electronAPI.hasFaceRecord(actorId, videoId)
 }
 
-export async function getAllRecords(): Promise<FaceRecord[]> {
-  return window.electronAPI.getAllRecords()
-}
-
 export async function getAllActorsWithRecords(): Promise<ActorGroup[]> {
   return window.electronAPI.getAllActorsWithRecords()
-}
-
-export async function deleteRecord(id: number): Promise<boolean> {
-  return window.electronAPI.deleteRecord(id)
 }
 
 export async function deleteVideo(videoId: number): Promise<boolean> {

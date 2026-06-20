@@ -22,17 +22,6 @@ export interface ApiCheckResult {
   facial_max_distance: number
 }
 
-export interface ActorInfo {
-  id: number
-  name: string | null
-  image_blob: string | null
-  facial_area_x: number | null
-  facial_area_y: number | null
-  facial_area_w: number | null
-  facial_area_h: number | null
-  face_confidence: number | null
-}
-
 export interface ActorMatchCandidate {
   actor_id: number
   distance: number
@@ -63,13 +52,6 @@ export interface SearchResultGroup {
   actor_id: number
   items: SearchResult[]
   best_match: SearchResult
-}
-
-export interface FaceRecord {
-  id: number
-  actor_id: number
-  video_id: number
-  video_path: string
 }
 
 export interface ActorRecord {
@@ -119,9 +101,7 @@ export interface ElectronAPI {
     embedding: number[]
   }) => Promise<number>
   searchFaces: (embedding: number[], maxDistance?: number) => Promise<SearchResult[]>
-  getAllRecords: () => Promise<FaceRecord[]>
   getAllActorsWithRecords: () => Promise<ActorGroup[]>
-  deleteRecord: (id: number) => Promise<boolean>
   deleteVideo: (videoId: number) => Promise<boolean>
   deleteOrphanActors: () => Promise<number>
   searchMatchingActors: (embedding: number[], maxDistance?: number) => Promise<ActorMatchCandidate[]>
@@ -132,7 +112,6 @@ export interface ElectronAPI {
   readFileAsDataUrl: (filePath: string) => Promise<{ dataUrl: string; buffer: ArrayBuffer }>
   fileExists: (filePath: string) => Promise<boolean>
   openPath: (filePath: string) => Promise<string>
-  readFileBuffer: (filePath: string) => Promise<ArrayBuffer>
   // --- MPV Player ---
   mpvOpen: (filePath: string, bounds?: MpvBounds) => Promise<void>
   mpvClose: () => Promise<void>
