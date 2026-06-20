@@ -115,10 +115,12 @@ export interface ActorWithRecords {
   facial_area_w: number | null
   facial_area_h: number | null
   face_confidence: number | null
+  created_at: string
   records: {
     id: number
     video_id: number
     video_path: string
+    created_at: string
   }[]
 }
 
@@ -228,6 +230,8 @@ export function searchSimilarFaces(embedding: Buffer, maxDistance: number = 0.5)
       fr.id, fr.actor_id, fr.video_id, v.path AS video_path,
       a.image_blob, a.facial_area_x, a.facial_area_y,
       a.facial_area_w, a.facial_area_h, a.face_confidence,
+      a.created_at AS actor_created_at,
+      v.created_at AS video_created_at,
       vec_distance_cosine(a.embedding, ?) AS distance
     FROM actors a
     JOIN face_records fr ON fr.actor_id = a.id
@@ -263,9 +267,11 @@ export function getAllActorsWithRecords(): any[] {
       a.facial_area_w,
       a.facial_area_h,
       a.face_confidence,
+      a.created_at AS actor_created_at,
       fr.id AS record_id,
       fr.video_id,
-      v.path AS video_path
+      v.path AS video_path,
+      v.created_at AS record_created_at
     FROM actors a
     LEFT JOIN face_records fr ON fr.actor_id = a.id
     LEFT JOIN videos v ON v.id = fr.video_id
@@ -284,6 +290,7 @@ export function getAllActorsWithRecords(): any[] {
         facial_area_w: row.facial_area_w,
         facial_area_h: row.facial_area_h,
         face_confidence: row.face_confidence,
+        created_at: row.actor_created_at,
         records: []
       })
     }
@@ -291,7 +298,8 @@ export function getAllActorsWithRecords(): any[] {
       actorMap.get(row.actor_id).records.push({
         id: row.record_id,
         video_id: row.video_id,
-        video_path: row.video_path
+        video_path: row.video_path,
+        created_at: row.record_created_at
       })
     }
   }

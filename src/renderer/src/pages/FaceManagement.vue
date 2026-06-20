@@ -35,61 +35,72 @@
       </div>
     </template>
 
-    <div v-else class="flex flex-col gap-3 flex-1 overflow-y-auto min-h-0">
+    <div v-else class="flex flex-col gap-3 flex-1 min-h-0">
       <div class="text-sm text-gray-400 shrink-0">
         共 <span class="text-gray-200 font-medium">{{ actorGroups.length }}</span> 位演员，<span class="text-gray-200 font-medium">{{ totalRecords }}</span> 条记录
       </div>
 
-      <div
-        v-for="group in actorGroups"
-        :key="group.actor_id"
-        class="bg-gray-800 rounded-lg border border-gray-700 overflow-hidden"
-      >
+      <div class="flex-1 min-h-0 overflow-y-auto flex flex-col gap-4">
         <div
-          @click="toggleActor(group.actor_id)"
-          class="flex items-center gap-3 p-3 cursor-pointer hover:bg-gray-700/50 transition-colors select-none"
+          v-for="group in actorGroups"
+          :key="group.actor_id"
+          class="bg-gray-800 rounded-lg border border-gray-700"
         >
-          <img
-            v-if="group.image_blob"
-            :src="`data:image/jpeg;base64,${group.image_blob}`"
-            class="w-10 h-10 object-cover rounded shrink-0"
-          />
-          <div v-else class="w-10 h-10 rounded shrink-0 bg-gray-700 flex items-center justify-center text-xs text-gray-400">?</div>
-          <div class="flex-1 min-w-0">
-            <span class="text-sm font-medium text-gray-200">{{ group.name || `演员 #${group.actor_id}` }}</span>
-            <span class="text-xs text-gray-500 ml-2">{{ group.records.length }} 部视频</span>
-          </div>
-          <span class="text-xs text-gray-500 transition-transform" :class="expandedActors.has(group.actor_id) ? 'rotate-180' : ''">
+          <div
+            @click="toggleActor(group.actor_id)"
+            class="flex items-center gap-3 p-3 cursor-pointer hover:bg-gray-700/50 transition-colors select-none"
+          >
+            <img
+              v-if="group.image_blob"
+              :src="`data:image/jpeg;base64,${group.image_blob}`"
+              class="w-10 h-10 object-cover rounded shrink-0 cursor-pointer border border-gray-600"
+              @click.stop="previewImage(`data:image/jpeg;base64,${group.image_blob}`)"
+            />
+            <div v-else class="w-10 h-10 rounded shrink-0 bg-gray-700 flex items-center justify-center text-xs text-gray-400">?</div>
+            <div class="flex-1 min-w-0">
+              <span class="text-sm font-medium text-gray-200">{{ group.name || `演员 #${group.actor_id}` }}</span>
+              <span class="text-xs text-gray-500 ml-2">{{ group.records.length }} 部视频</span>
+              <span class="text-xs text-gray-500 ml-2">| {{ group.created_at || '' }}</span>
+            </div>
+            <span class="text-xs text-gray-500 transition-transform" :class="expandedActors.has(group.actor_id) ? 'rotate-180' : ''">
             ▼
           </span>
-        </div>
+          </div>
 
-        <div v-if="expandedActors.has(group.actor_id)" class="border-t border-gray-700">
-          <div
-            v-for="record in group.records"
-            :key="record.id"
-            class="flex items-center gap-3 px-3 py-2.5 hover:bg-gray-700/30 border-b border-gray-700/50 last:border-none"
-          >
-            <div class="flex-1 min-w-0">
-              <div class="text-xs text-gray-300 truncate" :title="record.video_path">
-                {{ record.video_path || '-' }}
-              </div>
-            </div>
-            <button
-              @click="deleteRecord(group.actor_id, record.id)"
-              class="px-2 py-1 bg-red-600 hover:bg-red-700 rounded text-xs transition-colors shrink-0"
+          <div v-if="expandedActors.has(group.actor_id)" class="border-t border-gray-700">
+            <div
+              v-for="record in group.records"
+              :key="record.id"
+              class="flex items-center gap-3 px-3 py-2.5 hover:bg-gray-700/30 border-b border-gray-700/50 last:border-none"
             >
-              删除
-            </button>
+              <div class="flex-1 min-w-0 flex items-center gap-2">
+                <span class="text-xs text-gray-400 shrink-0">视频：</span>
+                <button @click="openVideo(record.video_path)" class="text-xs text-blue-400 hover:text-blue-300 truncate min-w-0 text-left">
+                  {{ record.video_path || '-' }}
+                </button>
+                <span class="text-xs text-gray-500 shrink-0 ml-auto">{{ record.created_at || '' }}</span>
+              </div>
+              <button
+                @click="deleteRecord(group.actor_id, record.id)"
+                class="px-2 py-1 bg-red-600 hover:bg-red-700 rounded text-xs transition-colors shrink-0"
+              >
+                删除
+              </button>
+            </div>
           </div>
         </div>
       </div>
+
     </div>
 
     <div v-if="message" class="fixed bottom-4 right-4 px-4 py-2 rounded-lg shadow-lg text-sm"
       :class="messageType === 'success' ? 'bg-green-600' : 'bg-red-600'"
     >
       {{ message }}
+    </div>
+
+    <div v-if="previewImg" class="fixed inset-0 z-50 flex items-center justify-center bg-black/80" @click.self="previewImg = ''">
+      <img alt="actor" :src="previewImg" class="max-w-[90vw] max-h-[90vh] object-contain rounded-lg" />
     </div>
 
     <div v-if="showCleanupDialog" class="fixed inset-0 z-50 flex items-center justify-center bg-black/60" @click.self="showCleanupDialog = false">
@@ -128,7 +139,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import { getAllActorsWithRecords, deleteRecord as deleteRecordApi, fileExists } from '../lib/api'
+import { getAllActorsWithRecords, deleteRecord as deleteRecordApi, fileExists, openPath } from '../lib/api'
 import type { ActorGroup } from '../lib/types'
 
 const actorGroups = ref<ActorGroup[]>([])
@@ -140,6 +151,7 @@ const showCleanupDialog = ref(false)
 const invalidRecords = ref<{ id: number; video_path: string; actor_id: number }[]>([])
 const cleaning = ref(false)
 const expandedActors = ref(new Set<number>())
+const previewImg = ref('')
 
 const totalRecords = ref(0)
 
@@ -154,6 +166,7 @@ async function loadRecords() {
     const data = await getAllActorsWithRecords()
     actorGroups.value = data
     totalRecords.value = data.reduce((sum, g) => sum + g.records.length, 0)
+    expandedActors.value = new Set(data.map(g => g.actor_id))
   } catch (e: any) {
     error.value = '加载失败: ' + e.message
   } finally {
@@ -236,5 +249,15 @@ function showMessage(msg: string, type: 'success' | 'error') {
   message.value = msg
   messageType.value = type
   setTimeout(() => { message.value = '' }, 3000)
+}
+
+function previewImage(src: string) {
+  previewImg.value = src
+}
+
+function openVideo(filePath: string) {
+  if (filePath) {
+    openPath(filePath)
+  }
 }
 </script>

@@ -1,5 +1,5 @@
 <template>
-  <div class="flex flex-col h-full p-4 gap-4 overflow-y-auto">
+  <div class="flex flex-col h-full p-4 gap-4">
     <div class="bg-gray-800 rounded-lg p-3 border border-gray-700">
       <h2 class="text-sm font-medium text-gray-300 mb-2">输入搜索图片</h2>
       <ImageInput @image-selected="onImageSelected" />
