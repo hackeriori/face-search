@@ -1,8 +1,23 @@
 <template>
   <div class="flex flex-col h-full p-4 gap-4">
-    <div class="flex items-center justify-between shrink-0">
-      <h2 class="text-lg font-medium text-gray-200">人脸管理</h2>
-      <div class="flex items-center gap-2">
+    <div class="flex items-center gap-3 shrink-0">
+      <h2 class="text-lg font-medium text-gray-200 shrink-0">人脸管理</h2>
+      <div class="relative flex-1 max-w-xs">
+        <input
+          v-model="searchQuery"
+          type="text"
+          placeholder="搜索演员名或视频路径..."
+          class="w-full px-3 py-1.5 bg-gray-700/50 border border-gray-600 rounded text-sm text-gray-200 placeholder-gray-500 outline-none focus:border-gray-500 transition-colors"
+        />
+        <button
+          v-if="searchQuery"
+          @click="searchQuery = ''"
+          class="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-200 text-sm leading-none"
+        >
+          ✕
+        </button>
+      </div>
+      <div class="flex items-center gap-2 shrink-0">
         <button
           @click="checkInvalidRecords"
           class="px-3 py-1.5 bg-orange-600 hover:bg-orange-500 rounded text-sm transition-colors"
@@ -36,14 +51,21 @@
     </template>
 
     <div v-else class="flex flex-col gap-3 flex-1 min-h-0">
-      <div class="text-sm text-gray-400 shrink-0">
-        共 <span class="text-gray-200 font-medium">{{ actorGroups.length }}</span> 位演员，<span class="text-gray-200 font-medium">{{ totalRecords }}</span> 条记录
-      </div>
+      <template v-if="!filteredActorGroups.length">
+        <div class="flex-1 flex items-center justify-center">
+          <div class="text-gray-500">无匹配结果</div>
+        </div>
+      </template>
 
-      <div class="flex-1 min-h-0 overflow-y-auto flex flex-col gap-4">
-        <div
-          v-for="group in actorGroups"
-          :key="group.actor_id"
+      <template v-else>
+        <div class="text-sm text-gray-400 shrink-0">
+          共 <span class="text-gray-200 font-medium">{{ filteredActorGroups.length }}</span> 位演员，<span class="text-gray-200 font-medium">{{ totalVideos }}</span> 部视频
+        </div>
+
+        <div class="flex-1 min-h-0 overflow-y-auto flex flex-col gap-4">
+          <div
+            v-for="group in filteredActorGroups"
+            :key="group.actor_id"
           class="bg-gray-800 rounded-lg border border-gray-700"
         >
           <div
@@ -90,6 +112,7 @@
           </div>
         </div>
       </div>
+      </template>
 
     </div>
 
@@ -106,15 +129,15 @@
     <div v-if="showCleanupDialog" class="fixed inset-0 z-50 flex items-center justify-center bg-black/60" @click.self="showCleanupDialog = false">
       <div class="bg-gray-800 rounded-lg shadow-xl w-[520px] max-h-[80vh] flex flex-col">
         <div class="px-5 py-4 border-b border-gray-700 shrink-0">
-          <h3 class="text-base font-medium text-gray-200">无效记录清理</h3>
+          <h3 class="text-base font-medium text-gray-200">无效视频清理</h3>
           <p class="text-sm text-gray-400 mt-1">
-            以下 {{ invalidRecords.length }} 条记录对应的文件已不存在，是否删除？
+            以下 {{ invalidRecords.length }} 个视频文件已不存在，将删除视频记录及关联的人脸记录，并清理名下无记录的演员，是否继续？
           </p>
         </div>
         <div class="flex-1 overflow-y-auto px-5 py-3 min-h-0">
-             <div v-for="r in invalidRecords" :key="r.id" class="py-2 border-b border-gray-700/50 last:border-none">
+             <div v-for="r in invalidRecords" :key="r.video_id" class="py-2 border-b border-gray-700/50 last:border-none">
             <div class="text-sm text-gray-300 truncate" :title="r.video_path">{{ r.video_path }}</div>
-            <div class="text-xs text-gray-500 mt-0.5">演员 #{{ r.actor_id }} | ID: {{ r.id }}</div>
+            <div class="text-xs text-gray-500 mt-0.5">视频 ID: {{ r.video_id }}</div>
           </div>
         </div>
         <div class="px-5 py-3 border-t border-gray-700 flex items-center justify-end gap-2 shrink-0">
@@ -138,8 +161,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
-import { getAllActorsWithRecords, deleteRecord as deleteRecordApi, fileExists, openPath } from '../lib/api'
+import { ref, computed, onMounted } from 'vue'
+import { getAllActorsWithRecords, deleteRecord as deleteRecordApi, deleteVideo, deleteOrphanActors, fileExists, openPath } from '../lib/api'
 import type { ActorGroup } from '../lib/types'
 
 const actorGroups = ref<ActorGroup[]>([])
@@ -148,12 +171,30 @@ const error = ref('')
 const message = ref('')
 const messageType = ref<'success' | 'error'>('success')
 const showCleanupDialog = ref(false)
-const invalidRecords = ref<{ id: number; video_path: string; actor_id: number }[]>([])
+const invalidRecords = ref<{ video_id: number; video_path: string }[]>([])
 const cleaning = ref(false)
 const expandedActors = ref(new Set<number>())
 const previewImg = ref('')
+const searchQuery = ref('')
 
-const totalRecords = ref(0)
+const filteredActorGroups = computed(() => {
+  const q = searchQuery.value.trim().toLowerCase()
+  if (!q) return actorGroups.value
+  return actorGroups.value.filter(g => {
+    if (g.name && g.name.toLowerCase().includes(q)) return true
+    return g.records.some(r => r.video_path && r.video_path.toLowerCase().includes(q))
+  })
+})
+
+const totalVideos = computed(() => {
+  const videoIds = new Set<number>()
+  for (const g of filteredActorGroups.value) {
+    for (const r of g.records) {
+      videoIds.add(r.video_id)
+    }
+  }
+  return videoIds.size
+})
 
 onMounted(() => {
   loadRecords()
@@ -165,7 +206,6 @@ async function loadRecords() {
   try {
     const data = await getAllActorsWithRecords()
     actorGroups.value = data
-    totalRecords.value = data.reduce((sum, g) => sum + g.records.length, 0)
     expandedActors.value = new Set(data.map(g => g.actor_id))
   } catch (e: any) {
     error.value = '加载失败: ' + e.message
@@ -198,7 +238,6 @@ async function deleteRecord(actorId: number, recordId: number) {
         actorGroups.value = actorGroups.value.filter(g => g.actor_id !== actorId)
       }
     }
-    totalRecords.value = actorGroups.value.reduce((sum, g) => sum + g.records.length, 0)
     showMessage('删除成功', 'success')
   } catch (e: any) {
     showMessage('删除失败: ' + e.message, 'error')
@@ -208,16 +247,18 @@ async function deleteRecord(actorId: number, recordId: number) {
 async function checkInvalidRecords() {
   try {
     const groups = await getAllActorsWithRecords()
-    const invalid: { id: number; video_path: string; actor_id: number }[] = []
+    const seen = new Set<number>()
+    const invalid: { video_id: number; video_path: string }[] = []
     for (const g of groups) {
       for (const r of g.records) {
-        if (!r.video_path) continue
+        if (!r.video_path || seen.has(r.video_id)) continue
+        seen.add(r.video_id)
         const exists = await fileExists(r.video_path)
-        if (!exists) invalid.push({ id: r.id, video_path: r.video_path, actor_id: g.actor_id })
+        if (!exists) invalid.push({ video_id: r.video_id, video_path: r.video_path })
       }
     }
     if (invalid.length === 0) {
-      showMessage('所有记录对应的文件均存在', 'success')
+      showMessage('所有视频文件均存在', 'success')
       return
     }
     invalidRecords.value = invalid
@@ -230,14 +271,18 @@ async function checkInvalidRecords() {
 async function confirmCleanup() {
   cleaning.value = true
   try {
-    let count = 0
+    let videoCount = 0
     for (const r of invalidRecords.value) {
-      await deleteRecordApi(r.id)
-      count++
+      await deleteVideo(r.video_id)
+      videoCount++
     }
+    const actorCount = await deleteOrphanActors()
     await loadRecords()
     showCleanupDialog.value = false
-    showMessage(`已清理 ${count} 条无效记录`, 'success')
+    const parts: string[] = []
+    if (videoCount > 0) parts.push(`已清理 ${videoCount} 个无效视频`)
+    if (actorCount > 0) parts.push(`已删除 ${actorCount} 个无记录的演员`)
+    showMessage(parts.join('，'), 'success')
   } catch (e: any) {
     showMessage('清理失败: ' + e.message, 'error')
   } finally {

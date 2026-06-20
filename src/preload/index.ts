@@ -36,6 +36,10 @@ const api = {
 
   deleteRecord: (id: number): Promise<boolean> => ipcRenderer.invoke('db:deleteRecord', id),
 
+  deleteVideo: (videoId: number): Promise<boolean> => ipcRenderer.invoke('db:deleteVideo', videoId),
+
+  deleteOrphanActors: (): Promise<number> => ipcRenderer.invoke('db:deleteOrphanActors'),
+
   readClipboardImage: (): Promise<{ buffer: ArrayBuffer; dataUrl: string } | null> =>
     ipcRenderer.invoke('clipboard:readImage'),
 

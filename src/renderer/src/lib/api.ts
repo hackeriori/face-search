@@ -56,6 +56,14 @@ export async function deleteRecord(id: number): Promise<boolean> {
   return window.electronAPI.deleteRecord(id)
 }
 
+export async function deleteVideo(videoId: number): Promise<boolean> {
+  return window.electronAPI.deleteVideo(videoId)
+}
+
+export async function deleteOrphanActors(): Promise<number> {
+  return window.electronAPI.deleteOrphanActors()
+}
+
 export async function readClipboardImage(): Promise<{ buffer: ArrayBuffer; dataUrl: string } | null> {
   return window.electronAPI.readClipboardImage()
 }

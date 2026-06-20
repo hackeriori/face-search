@@ -311,3 +311,17 @@ export function deleteFaceRecord(id: number): boolean {
   const result = db.prepare('DELETE FROM face_records WHERE id = ?').run(id)
   return result.changes > 0
 }
+
+export function deleteVideo(videoId: number): boolean {
+  if (!db) throw new Error('Database not initialized')
+  const result = db.prepare('DELETE FROM videos WHERE id = ?').run(videoId)
+  return result.changes > 0
+}
+
+export function deleteOrphanActors(): number {
+  if (!db) throw new Error('Database not initialized')
+  const result = db.prepare(`
+    DELETE FROM actors WHERE id NOT IN (SELECT DISTINCT actor_id FROM face_records)
+  `).run()
+  return result.changes
+}
