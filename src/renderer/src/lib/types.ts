@@ -31,7 +31,6 @@ export interface ActorInfo {
   facial_area_w: number | null
   facial_area_h: number | null
   face_confidence: number | null
-  created_at: string
 }
 
 export interface ActorMatchCandidate {
@@ -58,8 +57,6 @@ export interface SearchResult {
   face_confidence: number
   distance: number
   similarity: number
-  actor_created_at: string
-  video_created_at: string
 }
 
 export interface SearchResultGroup {
@@ -79,7 +76,6 @@ export interface ActorRecord {
   id: number
   video_id: number
   video_path: string
-  created_at: string
 }
 
 export interface ActorGroup {
@@ -91,7 +87,6 @@ export interface ActorGroup {
   facial_area_w: number | null
   facial_area_h: number | null
   face_confidence: number | null
-  created_at: string
   records: ActorRecord[]
 }
 

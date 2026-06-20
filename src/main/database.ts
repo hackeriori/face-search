@@ -22,14 +22,12 @@ export function initDatabase(dbPath: string): Database.Database {
       facial_area_w INTEGER,
       facial_area_h INTEGER,
       face_confidence REAL,
-      embedding F32_BLOB,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      embedding F32_BLOB
     );
 
     CREATE TABLE IF NOT EXISTS videos (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      path VARCHAR(255) NOT NULL UNIQUE,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      path VARCHAR(255) NOT NULL UNIQUE
     );
 
     CREATE TABLE IF NOT EXISTS face_records (
@@ -115,12 +113,10 @@ export interface ActorWithRecords {
   facial_area_w: number | null
   facial_area_h: number | null
   face_confidence: number | null
-  created_at: string
   records: {
     id: number
     video_id: number
     video_path: string
-    created_at: string
   }[]
 }
 
@@ -155,7 +151,6 @@ export function getActorById(actorId: number): {
   facial_area_h: number | null
   face_confidence: number | null
   embedding: Buffer | null
-  created_at: string
 } | undefined {
   if (!db) throw new Error('Database not initialized')
   return db.prepare('SELECT * FROM actors WHERE id = ?').get(actorId) as any
@@ -230,8 +225,6 @@ export function searchSimilarFaces(embedding: Buffer, maxDistance: number = 0.5)
       fr.id, fr.actor_id, fr.video_id, v.path AS video_path,
       a.image_blob, a.facial_area_x, a.facial_area_y,
       a.facial_area_w, a.facial_area_h, a.face_confidence,
-      a.created_at AS actor_created_at,
-      v.created_at AS video_created_at,
       vec_distance_cosine(a.embedding, ?) AS distance
     FROM actors a
     JOIN face_records fr ON fr.actor_id = a.id
@@ -267,11 +260,9 @@ export function getAllActorsWithRecords(): any[] {
       a.facial_area_w,
       a.facial_area_h,
       a.face_confidence,
-      a.created_at AS actor_created_at,
       fr.id AS record_id,
       fr.video_id,
-      v.path AS video_path,
-      v.created_at AS record_created_at
+      v.path AS video_path
     FROM actors a
     LEFT JOIN face_records fr ON fr.actor_id = a.id
     LEFT JOIN videos v ON v.id = fr.video_id
@@ -290,7 +281,6 @@ export function getAllActorsWithRecords(): any[] {
         facial_area_w: row.facial_area_w,
         facial_area_h: row.facial_area_h,
         face_confidence: row.face_confidence,
-        created_at: row.actor_created_at,
         records: []
       })
     }
@@ -298,8 +288,7 @@ export function getAllActorsWithRecords(): any[] {
       actorMap.get(row.actor_id).records.push({
         id: row.record_id,
         video_id: row.video_id,
-        video_path: row.video_path,
-        created_at: row.record_created_at
+        video_path: row.video_path
       })
     }
   }

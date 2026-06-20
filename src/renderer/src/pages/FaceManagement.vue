@@ -82,7 +82,6 @@
             <div class="flex-1 min-w-0">
               <span class="text-sm font-medium text-gray-200">{{ group.name || `演员 #${group.actor_id}` }}</span>
               <span class="text-xs text-gray-500 ml-2">{{ group.records.length }} 部视频</span>
-              <span class="text-xs text-gray-500 ml-2">| {{ group.created_at || '' }}</span>
             </div>
             <span class="text-xs text-gray-500 transition-transform" :class="expandedActors.has(group.actor_id) ? 'rotate-180' : ''">
             ▼
@@ -100,7 +99,6 @@
                 <button @click="openVideo(record.video_path)" class="text-xs text-blue-400 hover:text-blue-300 truncate min-w-0 text-left">
                   {{ record.video_path || '-' }}
                 </button>
-                <span class="text-xs text-gray-500 shrink-0 ml-auto">{{ record.created_at || '' }}</span>
               </div>
               <button
                 @click="deleteRecord(group.actor_id, record.id)"

@@ -27,7 +27,6 @@
           <div class="flex items-center gap-2 mb-1">
             <span class="text-sm font-medium text-gray-200">演员 #{{ group.actor_id }}</span>
             <span class="text-xs text-gray-500">{{ group.items.length }} 条记录</span>
-            <span class="text-xs text-gray-500">| {{ group.best_match.actor_created_at || '' }}</span>
           </div>
           <div class="text-xs text-gray-500 mb-2">最高相似度: {{ group.best_match.similarity }}%</div>
           <div class="space-y-1">
@@ -36,7 +35,6 @@
               <button @click="openVideo(item.video_path)" class="text-blue-400 hover:text-blue-300 truncate min-w-0">
                 {{ item.video_path || '(无视频)' }}
               </button>
-              <span class="text-gray-500 shrink-0 ml-auto">{{ item.video_created_at || '' }}</span>
             </div>
           </div>
         </div>
