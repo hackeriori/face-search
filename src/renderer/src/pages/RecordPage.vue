@@ -62,58 +62,60 @@
 
     <!-- Actor Match Dialog -->
     <Teleport to="body">
-      <div v-if="showActorDialog" class="fixed inset-0 z-50 flex items-center justify-center bg-black/60" @click.self="cancelActorDialog">
-        <div class="bg-gray-800 rounded-lg shadow-xl w-[600px] max-h-[80vh] flex flex-col border border-gray-600">
-          <div class="px-5 py-4 border-b border-gray-700 shrink-0">
-            <h3 class="text-base font-medium text-gray-200">检测到匹配的演员</h3>
-            <p class="text-sm text-gray-400 mt-1">系统发现以下演员与当前人脸相似，请确认是否为同一人：</p>
-          </div>
-          <div class="flex-1 overflow-y-auto px-5 py-3 min-h-0 space-y-3">
-            <div
-              v-for="candidate in actorCandidates"
-              :key="candidate.actor_id"
-              class="flex items-center gap-4 bg-gray-700/50 rounded-lg p-3 border border-gray-600 hover:border-blue-500 transition-colors"
-            >
-              <div class="relative shrink-0 w-20 h-20 rounded overflow-hidden bg-gray-900">
-                <img
-                  :src="`data:image/jpeg;base64,${candidate.image_blob}`"
-                  class="w-full h-full object-cover"
-                />
-                <div class="absolute border-2 border-green-500 pointer-events-none"
-                  :style="{
-                    left: (candidate.facial_area_x * (80 / imageNaturalWidth)) + 'px',
-                    top: (candidate.facial_area_y * (80 / imageNaturalHeight)) + 'px',
-                    width: (candidate.facial_area_w * (80 / imageNaturalWidth)) + 'px',
-                    height: (candidate.facial_area_h * (80 / imageNaturalHeight)) + 'px'
-                  }"
-                ></div>
-              </div>
-              <div class="flex-1 min-w-0">
-                <div class="flex items-center gap-2">
-                  <span class="text-sm font-medium text-gray-200">演员 #{{ candidate.actor_id }}</span>
-                  <span class="text-xs px-2 py-0.5 rounded font-bold"
-                    :class="candidate.similarity >= 80 ? 'bg-green-600 text-white' : candidate.similarity >= 60 ? 'bg-yellow-600 text-white' : 'bg-red-600 text-white'"
-                  >
-                    {{ candidate.similarity }}%
-                  </span>
-                </div>
-                <div class="text-xs text-gray-400 mt-1">相似度: {{ candidate.similarity }}%</div>
-              </div>
-              <button
-                @click="selectActorMatch(candidate.actor_id)"
-                class="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 rounded text-sm shrink-0 transition-colors"
+      <div v-if="showActorDialog" class="fixed inset-0 z-50 bg-black/60" @click.self="cancelActorDialog">
+        <div class="bg-gray-800 rounded-lg shadow-xl border border-gray-600 flex flex-col" :style="dialogPositionStyle">
+          <div class="flex flex-col h-full">
+            <div class="px-5 py-4 border-b border-gray-700 shrink-0">
+              <h3 class="text-base font-medium text-gray-200">检测到匹配的演员</h3>
+              <p class="text-sm text-gray-400 mt-1">系统发现以下演员与当前人脸相似，请确认是否为同一人：</p>
+            </div>
+            <div class="flex-1 overflow-y-auto px-5 py-3 min-h-0 space-y-3">
+              <div
+                v-for="candidate in actorCandidates"
+                :key="candidate.actor_id"
+                class="flex items-center gap-4 bg-gray-700/50 rounded-lg p-3 border border-gray-600 hover:border-blue-500 transition-colors"
               >
-                同一演员
+                <div class="relative shrink-0 w-20 h-20 rounded overflow-hidden bg-gray-900">
+                  <img
+                    :src="`data:image/jpeg;base64,${candidate.image_blob}`"
+                    class="w-full h-full object-cover"
+                  />
+                  <div class="absolute border-2 border-green-500 pointer-events-none"
+                    :style="{
+                      left: (candidate.facial_area_x * (80 / imageNaturalWidth)) + 'px',
+                      top: (candidate.facial_area_y * (80 / imageNaturalHeight)) + 'px',
+                      width: (candidate.facial_area_w * (80 / imageNaturalWidth)) + 'px',
+                      height: (candidate.facial_area_h * (80 / imageNaturalHeight)) + 'px'
+                    }"
+                  ></div>
+                </div>
+                <div class="flex-1 min-w-0">
+                  <div class="flex items-center gap-2">
+                    <span class="text-sm font-medium text-gray-200">演员 #{{ candidate.actor_id }}</span>
+                    <span class="text-xs px-2 py-0.5 rounded font-bold"
+                      :class="candidate.similarity >= 80 ? 'bg-green-600 text-white' : candidate.similarity >= 60 ? 'bg-yellow-600 text-white' : 'bg-red-600 text-white'"
+                    >
+                      {{ candidate.similarity }}%
+                    </span>
+                  </div>
+                  <div class="text-xs text-gray-400 mt-1">相似度: {{ candidate.similarity }}%</div>
+                </div>
+                <button
+                  @click="selectActorMatch(candidate.actor_id)"
+                  class="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 rounded text-sm shrink-0 transition-colors"
+                >
+                  同一演员
+                </button>
+              </div>
+            </div>
+            <div class="px-5 py-3 border-t border-gray-700 flex items-center justify-end gap-2 shrink-0">
+              <button
+                @click="rejectActorMatch"
+                class="px-4 py-2 bg-gray-600 hover:bg-gray-500 rounded text-sm transition-colors"
+              >
+                以上都不是，新建演员
               </button>
             </div>
-          </div>
-          <div class="px-5 py-3 border-t border-gray-700 flex items-center justify-end gap-2 shrink-0">
-            <button
-              @click="rejectActorMatch"
-              class="px-4 py-2 bg-gray-600 hover:bg-gray-500 rounded text-sm transition-colors"
-            >
-              以上都不是，新建演员
-            </button>
           </div>
         </div>
       </div>
@@ -128,7 +130,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, nextTick } from 'vue'
+import { ref, computed, nextTick } from 'vue'
 import VideoPlayer from '../components/VideoPlayer.vue'
 import ImageInput from '../components/ImageInput.vue'
 import { representImage, insertFace, searchMatchingActors, findOrCreateVideo, createActor, hasFaceRecord } from '../lib/api'
@@ -149,11 +151,13 @@ const messageType = ref<'success' | 'error'>('success')
 
 const imageNaturalWidth = ref(0)
 const imageNaturalHeight = ref(0)
+const imageContainer = ref<HTMLElement | null>(null)
 
 // Actor match dialog
 const showActorDialog = ref(false)
 const actorCandidates = ref<ActorMatchCandidate[]>([])
 let dialogResolve: ((actorId: number | null) => void) | null = null
+let dialogReject: (() => void) | null = null
 
 async function selectVideo() {
   const result = await window.electronAPI.openFile({
@@ -179,6 +183,19 @@ async function onImageSelected(data: { dataUrl: string; buffer: ArrayBuffer }) {
   currentImageBuffer.value = data.buffer
   await detectFaces(data.dataUrl)
 }
+
+const dialogPositionStyle = computed(() => {
+  const el = imageContainer.value
+  if (!el) return {}
+  const rect = el.getBoundingClientRect()
+  return {
+    position: 'fixed',
+    left: `${rect.left}px`,
+    top: `${rect.top}px`,
+    width: `${rect.width}px`,
+    height: `${rect.height}px`
+  }
+})
 
 async function detectFaces(imageDataUrl: string) {
   faces.value = []
@@ -275,10 +292,17 @@ async function resolveActorByDialog(embedding: number[]): Promise<number> {
   actorCandidates.value = candidates
   showActorDialog.value = true
 
-  return new Promise<number>((resolve) => {
+  return new Promise<number>((resolve, reject) => {
+    dialogReject = () => {
+      showActorDialog.value = false
+      dialogResolve = null
+      dialogReject = null
+      reject(new Error('cancelled'))
+    }
     dialogResolve = (actorId: number | null) => {
       showActorDialog.value = false
       dialogResolve = null
+      dialogReject = null
       if (actorId !== null) {
         resolve(actorId)
       } else {
@@ -297,7 +321,7 @@ function rejectActorMatch() {
 }
 
 function cancelActorDialog() {
-  dialogResolve?.(null)
+  dialogReject?.()
 }
 
 async function saveFace() {
@@ -322,7 +346,13 @@ async function saveFace() {
     const face = selectedFace.value
 
     const videoId = await findOrCreateVideo(videoPath.value)
-    const actorId = await resolveActorByDialog([...face.embedding])
+
+    let actorId: number
+    try {
+      actorId = await resolveActorByDialog([...face.embedding])
+    } catch {
+      return
+    }
 
     const exists = await hasFaceRecord(actorId, videoId)
     if (exists) {
