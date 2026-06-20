@@ -12,7 +12,8 @@
             />
           </div>
           <div class="mt-2 flex gap-2">
-            <button @click="selectVideo" class="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 rounded text-sm transition-colors">选择视频</button>
+            <button @click="selectVideo" class="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 rounded text-sm transition-colors">播放视频</button>
+            <button @click="openVideo" class="px-3 py-1.5 bg-purple-600 hover:bg-purple-700 rounded text-sm transition-colors">打开视频</button>
             <button @click="captureFrame" :disabled="!videoPath" class="px-3 py-1.5 bg-green-600 hover:bg-green-700 rounded text-sm disabled:opacity-40 transition-colors">截取当前帧</button>
           </div>
         </div>
@@ -58,7 +59,7 @@
             />
             <button
               @click="saveFace"
-              :disabled="!videoPath || !faces.length || !selectedFace || saving"
+              :disabled="!savedVideoPath || !faces.length || !selectedFace || saving"
               class="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded text-sm font-medium disabled:opacity-40 transition-colors"
             >
               {{ saving ? '保存中...' : '保存人脸' }}
@@ -145,6 +146,7 @@ import { representImage, insertFaceRecord, searchMatchingActors, findOrCreateVid
 import type { DetectedFace, ActorMatchCandidate } from '../lib/types'
 
 const videoPath = ref('')
+const savedVideoPath = ref('')
 const currentImage = ref<string | null>(null)
 const currentImageBuffer = ref<ArrayBuffer | null>(null)
 const faces = ref<DetectedFace[]>([])
@@ -194,6 +196,17 @@ async function selectVideo() {
   })
   if (!result.canceled && result.filePaths.length > 0) {
     videoPath.value = result.filePaths[0]
+    savedVideoPath.value = result.filePaths[0]
+  }
+}
+
+async function openVideo() {
+  const result = await window.electronAPI.openFile({
+    filters: [{ name: 'Video Files', extensions: ['mp4', 'webm', 'ogg', 'wmv', 'mkv', 'avi', 'mov'] }]
+  })
+  if (!result.canceled && result.filePaths.length > 0) {
+    savedVideoPath.value = result.filePaths[0]
+    await window.electronAPI.openPath(result.filePaths[0])
   }
 }
 
@@ -386,7 +399,7 @@ function cancelActorDialog() {
 }
 
 async function saveFace() {
-  if (!videoPath.value) {
+  if (!savedVideoPath.value) {
     showMessage('请先选择视频', 'error')
     return
   }
@@ -406,7 +419,7 @@ async function saveFace() {
     const safeBlob = view.slice()
     const face = selectedFace.value
 
-    const videoId = await findOrCreateVideo(videoPath.value)
+    const videoId = await findOrCreateVideo(savedVideoPath.value)
 
     let actorId: number
     try {
