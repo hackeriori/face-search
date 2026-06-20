@@ -1,5 +1,5 @@
 <template>
-  <div ref="containerEl" class="h-full bg-gray-900 rounded overflow-hidden relative flex flex-col" style="min-height: 200px;">
+  <div ref="containerEl" class="h-full bg-gray-900 rounded overflow-hidden relative flex flex-col">
     <div v-if="!videoPath" class="flex items-center justify-center flex-1 text-gray-500 text-sm">
       尚未选择视频文件
     </div>
@@ -8,7 +8,6 @@
       <div
         ref="videoArea"
         class="h-full bg-black flex items-center justify-center text-gray-600 select-none flex-1"
-        :style="{ minHeight: '200px' }"
       >
         <div v-if="status.state === 'idle' || status.state === 'stopped'" class="flex flex-col items-center gap-2 text-gray-500">
           <svg class="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -24,7 +23,7 @@
         </div>
       </div>
 
-      <div class="bg-linear-to-t from-black/90 to-transparent p-2">
+      <div class="bg-linear-to-t shrink-0 from-black/90 to-transparent p-2">
         <input
           type="range"
           :min="0"
@@ -46,6 +45,46 @@
             </svg>
             <svg v-else class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
               <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>
+            </svg>
+          </button>
+          <button
+            @click="seekRelative(-10)"
+            :disabled="status.state === 'idle' || status.state === 'stopped'"
+            class="hover:text-white transition-colors disabled:opacity-40"
+            title="后退10秒"
+          >
+            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M17 18V6l-7 6 7 6zm-8 0V6l-7 6 7 6z"/>
+            </svg>
+          </button>
+          <button
+            @click="frameBackStep"
+            :disabled="status.state === 'idle' || status.state === 'stopped'"
+            class="hover:text-white transition-colors disabled:opacity-40"
+            title="后退一帧"
+          >
+            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M4 18V6h2v12H4zm3.5-6l8.5 6V6l-8.5 6z"/>
+            </svg>
+          </button>
+          <button
+            @click="frameStep"
+            :disabled="status.state === 'idle' || status.state === 'stopped'"
+            class="hover:text-white transition-colors disabled:opacity-40"
+            title="前进一帧"
+          >
+            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M18 6v12h-2V6h2zm-3.5 6L6 6v12l8.5-6z"/>
+            </svg>
+          </button>
+          <button
+            @click="seekRelative(10)"
+            :disabled="status.state === 'idle' || status.state === 'stopped'"
+            class="hover:text-white transition-colors disabled:opacity-40"
+            title="快进10秒"
+          >
+            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M7 6v12l7-6-7-6zm8 0v12l7-6-7-6z"/>
             </svg>
           </button>
           <span>{{ formatTime(status.timePos) }} / {{ formatTime(status.duration) }}</span>
@@ -151,6 +190,18 @@ function onSeekChange(event: Event) {
 
 async function togglePlay() {
   await window.electronAPI.mpvTogglePause()
+}
+
+async function seekRelative(offset: number) {
+  await window.electronAPI.mpvSeekRelative(offset)
+}
+
+async function frameStep() {
+  await window.electronAPI.mpvFrameStep()
+}
+
+async function frameBackStep() {
+  await window.electronAPI.mpvFrameBackStep()
 }
 
 async function captureCurrentFrame() {

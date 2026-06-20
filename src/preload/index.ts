@@ -52,6 +52,12 @@ const api = {
 
   mpvSeek: (time: number): Promise<void> => ipcRenderer.invoke('mpv:seek', time),
 
+  mpvSeekRelative: (offset: number): Promise<void> => ipcRenderer.invoke('mpv:seekRelative', offset),
+
+  mpvFrameStep: (): Promise<void> => ipcRenderer.invoke('mpv:frameStep'),
+
+  mpvFrameBackStep: (): Promise<void> => ipcRenderer.invoke('mpv:frameBackStep'),
+
   mpvCaptureFrame: (): Promise<{ buffer: ArrayBuffer; dataUrl: string }> =>
     ipcRenderer.invoke('mpv:captureFrame'),
 

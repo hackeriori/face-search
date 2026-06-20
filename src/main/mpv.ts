@@ -301,6 +301,18 @@ export class MpvPlayer {
     await this.sendCommand(['seek', time, 'absolute'])
   }
 
+  async seekRelative(offset: number): Promise<void> {
+    await this.sendCommand(['seek', offset, 'relative'])
+  }
+
+  async frameStep(): Promise<void> {
+    await this.sendCommand(['frame_step'])
+  }
+
+  async frameBackStep(): Promise<void> {
+    await this.sendCommand(['frame_back_step'])
+  }
+
   async captureFrame(): Promise<ArrayBuffer> {
     const outPath = path.join(os.tmpdir(), `mpv-frame-${Date.now()}.jpg`)
     await this.sendCommand(['screenshot-to-file', outPath, 'subtitles'])

@@ -164,6 +164,18 @@ export function registerIpcHandlers(ipc: typeof ipcMain) {
     await mpvPlayer?.seek(time)
   })
 
+  ipc.handle('mpv:seekRelative', async (_event, offset: number) => {
+    await mpvPlayer?.seekRelative(offset)
+  })
+
+  ipc.handle('mpv:frameStep', async () => {
+    await mpvPlayer?.frameStep()
+  })
+
+  ipc.handle('mpv:frameBackStep', async () => {
+    await mpvPlayer?.frameBackStep()
+  })
+
   ipc.handle('mpv:captureFrame', async () => {
     if (!mpvPlayer) throw new Error('MPV player not initialized')
     const buffer = await mpvPlayer.captureFrame()

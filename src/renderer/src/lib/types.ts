@@ -94,6 +94,9 @@ export interface ElectronAPI {
   mpvPause: () => Promise<void>
   mpvTogglePause: () => Promise<void>
   mpvSeek: (time: number) => Promise<void>
+  mpvSeekRelative: (offset: number) => Promise<void>
+  mpvFrameStep: () => Promise<void>
+  mpvFrameBackStep: () => Promise<void>
   mpvCaptureFrame: () => Promise<{ buffer: ArrayBuffer; dataUrl: string }>
   mpvGetStatus: () => Promise<MpvStatusInfo | null>
   mpvResize: (bounds: MpvBounds) => Promise<void>
