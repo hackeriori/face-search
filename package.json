@@ -9,7 +9,9 @@
     "dev:web": "node scripts/dev-web.js",
     "build": "vue-tsc --noEmit && vite build",
     "build:electron": "npm run build && electron-builder",
-    "rebuild": "electron-rebuild -f -w better-sqlite3"
+    "rebuild": "electron-rebuild -f -w better-sqlite3",
+    "download-mpv": "node scripts/download-mpv.js",
+    "postinstall": "node scripts/download-mpv.js || echo \"[postinstall] mpv download skipped (see above for details)\""
   },
   "dependencies": {
     "better-sqlite3": "^12.11.1",

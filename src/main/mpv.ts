@@ -1,5 +1,5 @@
 import { spawn, ChildProcess } from 'child_process'
-import { BrowserWindow } from 'electron'
+import { app, BrowserWindow } from 'electron'
 import { createConnection, Socket } from 'net'
 import path from 'path'
 import fs from 'fs'
@@ -22,6 +22,16 @@ export interface Bounds {
 
 function findMpv(): string {
   if (process.platform !== 'win32') return 'mpv'
+
+  // Check bundled mpv first
+  const bundledDir = app.isPackaged
+    ? path.join(process.resourcesPath, 'mpv')
+    : path.join(__dirname, '../../resources/mpv')
+  const bundledExe = path.join(bundledDir, 'mpv.exe')
+  try {
+    if (fs.existsSync(bundledExe)) return bundledExe
+  } catch {}
+
   const candidates = [
     'mpv.exe',
     'mpv.com',

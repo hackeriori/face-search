@@ -36,3 +36,6 @@ Thumbs.db
 # Temp
 tmp/
 temp/
+
+# mpv binary bundle (downloaded by scripts/download-mpv.js)
+resources/mpv/
