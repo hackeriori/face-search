@@ -55,6 +55,10 @@ export async function mergeActors(sourceActorId: number, targetActorId: number):
   return window.electronAPI.mergeActors(sourceActorId, targetActorId)
 }
 
+export async function renameActor(actorId: number, name: string): Promise<boolean> {
+  return window.electronAPI.renameActor(actorId, name)
+}
+
 export async function deleteVideo(videoId: number): Promise<boolean> {
   return window.electronAPI.deleteVideo(videoId)
 }

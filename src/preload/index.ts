@@ -45,6 +45,9 @@ const api = {
   mergeActors: (sourceActorId: number, targetActorId: number): Promise<void> =>
     ipcRenderer.invoke('db:mergeActors', sourceActorId, targetActorId),
 
+  renameActor: (actorId: number, name: string): Promise<boolean> =>
+    ipcRenderer.invoke('db:renameActor', actorId, name),
+
   deleteOrphanActors: (): Promise<number> => ipcRenderer.invoke('db:deleteOrphanActors'),
 
   readClipboardImage: (): Promise<{ buffer: ArrayBuffer; dataUrl: string } | null> =>

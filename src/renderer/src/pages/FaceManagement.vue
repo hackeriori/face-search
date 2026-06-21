@@ -100,18 +100,42 @@
                 @click.stop="toggleSelectActor(group.actor_id)"
                 class="shrink-0 w-4 h-4 accent-blue-500"
               />
-              <span class="text-sm font-medium text-gray-200 truncate mr-3">{{ group.name || `演员 #${group.actor_id}` }}</span>
+              <template v-if="editingActorId === group.actor_id">
+                <input
+                  ref="renameInputRef"
+                  v-model="renameText"
+                  @keydown.enter="confirmRename(group.actor_id)"
+                  @keydown.esc="cancelRename"
+                  @blur="confirmRename(group.actor_id)"
+                  class="flex-1 min-w-0 px-2 py-0.5 bg-gray-700 border border-gray-500 rounded text-sm text-gray-200 outline-none"
+                  autofocus
+                />
+                <button @click="confirmRename(group.actor_id)" class="px-2 py-0.5 bg-green-600 hover:bg-green-500 rounded text-xs transition-colors shrink-0">保存</button>
+                <button @click="cancelRename" class="px-2 py-0.5 bg-gray-600 hover:bg-gray-500 rounded text-xs transition-colors shrink-0">取消</button>
+              </template>
+              <template v-else>
+                <span class="text-sm font-medium text-gray-200 truncate mr-1">
+                  {{ group.name || `演员 #${group.actor_id}` }}
+                  <button
+                                    @click="startRename(group)"
+                                    class="p-1 text-gray-400 hover:text-gray-200 rounded transition-colors shrink-0"
+                                    title="重命名"
+                                  >
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
+                  </button>
+                </span>
+              </template>
               <button
                 @click="switchActorTab(group.actor_id, 'videos')"
                 :class="(activeActorTab[group.actor_id] || 'videos') === 'videos' ? 'bg-gray-700 text-gray-200' : 'bg-transparent text-gray-500 hover:text-gray-300'"
                 class="px-1.5 py-0.5 rounded text-xs transition-colors shrink-0"
-              >视频{{ group.records.length }}</button>
+              >视频({{ group.records.length }})</button>
               <button
                 v-if="(actorFacesMap[group.actor_id] || []).length > 1"
                 @click="switchActorTab(group.actor_id, 'faces')"
                 :class="activeActorTab[group.actor_id] === 'faces' ? 'bg-gray-700 text-gray-200' : 'bg-transparent text-gray-500 hover:text-gray-300'"
                 class="px-1.5 py-0.5 rounded text-xs transition-colors shrink-0"
-              >人脸{{ (actorFacesMap[group.actor_id] || []).length }}</button>
+              >人脸({{ (actorFacesMap[group.actor_id] || []).length }})</button>
             </div>
             <div class="flex-1 overflow-y-auto">
               <div v-if="(activeActorTab[group.actor_id] || 'videos') !== 'faces'">
@@ -281,7 +305,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, nextTick } from 'vue'
-import { getAllActorsWithRecords, deleteVideo, deleteOrphanActors, fileExists, openPath, mergeActors, getActorFaces, deleteActorFace } from '../lib/api'
+import { getAllActorsWithRecords, deleteVideo, deleteOrphanActors, fileExists, openPath, mergeActors, getActorFaces, deleteActorFace, renameActor } from '../lib/api'
 import type { ActorGroup, ActorRecord, ActorFace } from '../lib/types'
 
 const actorGroups = ref<ActorGroup[]>([])
@@ -308,6 +332,10 @@ const actorFacesMap = ref<Record<number, ActorFace[]>>({})
 const activeActorTab = ref<Record<number, 'videos' | 'faces'>>({})
 const showFaceDeleteDialog = ref(false)
 const pendingFaceDelete = ref<{ actorId: number; face: ActorFace } | null>(null)
+
+const editingActorId = ref<number | null>(null)
+const renameText = ref('')
+const renameInputRef = ref<HTMLInputElement | null>(null)
 
 const filteredActorGroups = computed(() => {
   const q = searchQuery.value.trim().toLowerCase()
@@ -541,6 +569,38 @@ function drawPreviewFaces() {
   ctx.strokeStyle = '#22c55e'
   ctx.lineWidth = 3
   ctx.strokeRect(x, y, w, h)
+}
+
+function startRename(group: ActorGroup) {
+  editingActorId.value = group.actor_id
+  renameText.value = group.name || ''
+  nextTick(() => {
+    renameInputRef.value?.focus()
+    renameInputRef.value?.select()
+  })
+}
+
+async function confirmRename(actorId: number) {
+  if (editingActorId.value !== actorId) return
+  const name = renameText.value.trim()
+  const group = actorGroups.value.find(g => g.actor_id === actorId)
+  if (!group) return
+  if (name && name !== (group.name || '')) {
+    try {
+      await renameActor(actorId, name)
+      group.name = name
+      showMessage('重命名成功', 'success')
+    } catch (e: any) {
+      showMessage('重命名失败: ' + e.message, 'error')
+    }
+  }
+  editingActorId.value = null
+  renameText.value = ''
+}
+
+function cancelRename() {
+  editingActorId.value = null
+  renameText.value = ''
 }
 
 function openVideo(filePath: string) {

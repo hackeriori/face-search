@@ -129,6 +129,13 @@ export function createActor(name?: string): number {
   return Number(result.lastInsertRowid)
 }
 
+export function renameActor(actorId: number, name: string): boolean {
+  if (!db) throw new Error('Database not initialized')
+  const stmt = db.prepare('UPDATE actors SET name = ? WHERE id = ?')
+  const result = stmt.run(name, actorId)
+  return result.changes > 0
+}
+
 export function addActorFace(actorId: number, params: AddActorFaceParams): number {
   if (!db) throw new Error('Database not initialized')
   const stmt = db.prepare(`
