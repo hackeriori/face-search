@@ -366,6 +366,7 @@ async function loadRecords() {
   error.value = ''
   try {
     const data = await getAllActorsWithRecords()
+    data.sort((a, b) => b.actor_id - a.actor_id)
     actorGroups.value = data
     const faceResults = await Promise.all(data.map(g => getActorFaces(g.actor_id)))
     const map: Record<number, ActorFace[]> = {}
