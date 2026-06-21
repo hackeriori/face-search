@@ -3,7 +3,7 @@
     <div class="grid grid-cols-2 gap-4 flex-1 min-h-0">
       <div class="flex flex-col gap-3 min-h-0">
         <div class="bg-gray-800 rounded-lg p-3 border border-gray-700 flex-1 flex flex-col min-h-0">
-          <h2 class="text-sm font-medium text-gray-300 mb-2">视频来源</h2>
+          <h2 class="text-sm font-medium text-gray-300 mb-2">视频来源 <span v-if="savedVideoPath" class="text-xs text-gray-400 font-normal ml-2 truncate" :title="savedVideoPath">{{ savedVideoPath }}</span></h2>
           <div class="flex-1 min-h-0">
             <VideoPlayer
               ref="videoPlayerRef"
@@ -214,6 +214,9 @@ const refActorId = ref(0)
 let addRefResolve: ((value: boolean) => void) | null = null
 
 async function handleKeyboardPaste(e: KeyboardEvent) {
+  const tag = (e.target as HTMLElement)?.tagName
+  const isInput = tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || (e.target as HTMLElement)?.isContentEditable
+  if (isInput) return
   if ((e.ctrlKey || e.metaKey) && e.key === 'v') {
     e.preventDefault()
     pasting.value = true
