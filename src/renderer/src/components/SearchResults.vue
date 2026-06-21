@@ -18,7 +18,7 @@
           <img
             :src="`data:image/jpeg;base64,${group.best_match.image_blob}`"
             class="w-10 h-10 object-cover rounded shrink-0 cursor-pointer border border-gray-600"
-            @click.stop="previewImage(`data:image/jpeg;base64,${group.best_match.image_blob}`)"
+            @click.stop="previewImage(`data:image/jpeg;base64,${group.best_match.image_blob}`, group.best_match)"
           />
           <div class="flex-1 min-w-0">
             <span class="text-sm font-medium text-gray-200">演员 #{{ group.actor_id }}</span>
@@ -52,14 +52,17 @@
       </div>
     </div>
 
-    <div v-if="previewImg" class="fixed inset-0 z-50 flex items-center justify-center bg-black/80" @click.self="previewImg = ''">
-      <img :src="previewImg" class="max-w-[90vw] max-h-[90vh] object-contain rounded-lg" />
+    <div v-if="previewData" class="fixed inset-0 z-50 flex items-center justify-center bg-black/80" @click.self="previewData = null">
+      <div class="relative inline-flex overflow-hidden rounded-lg">
+        <img ref="previewDisplayImage" :src="previewData.src" class="max-w-[90vw] max-h-[90vh] object-contain" @load="drawPreviewFaces" />
+        <canvas ref="previewFaceCanvas" class="absolute inset-0 w-full h-full pointer-events-none" />
+      </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed, ref, watch, nextTick } from 'vue'
 import type { SearchResult, SearchResultGroup } from '../lib/types'
 import { openPath } from '../lib/api'
 
@@ -67,7 +70,9 @@ const props = defineProps<{
   results: SearchResult[]
 }>()
 
-const previewImg = ref('')
+const previewData = ref<{ src: string; facialArea: { x: number; y: number; w: number; h: number } } | null>(null)
+const previewFaceCanvas = ref<HTMLCanvasElement | null>(null)
+const previewDisplayImage = ref<HTMLImageElement | null>(null)
 const expandedActors = ref(new Set<number>())
 
 const actorGroups = computed<SearchResultGroup[]>(() => {
@@ -118,7 +123,43 @@ function openVideo(filePath: string) {
   }
 }
 
-function previewImage(src: string) {
-  previewImg.value = src
+function previewImage(src: string, result?: SearchResult) {
+  previewData.value = result
+    ? { src, facialArea: { x: result.facial_area_x, y: result.facial_area_y, w: result.facial_area_w, h: result.facial_area_h } }
+    : { src, facialArea: { x: 0, y: 0, w: 0, h: 0 } }
+  nextTick(() => drawPreviewFaces())
+}
+
+function drawPreviewFaces() {
+  const canvas = previewFaceCanvas.value
+  const img = previewDisplayImage.value
+  if (!canvas || !img || !previewData.value) return
+
+  const fa = previewData.value.facialArea
+  if (!fa.w || !fa.h) return
+
+  const rect = canvas.getBoundingClientRect()
+  canvas.width = rect.width
+  canvas.height = rect.height
+
+  const ctx = canvas.getContext('2d')
+  if (!ctx) return
+
+  const scale = Math.min(rect.width / img.naturalWidth, rect.height / img.naturalHeight)
+  const renderedW = img.naturalWidth * scale
+  const renderedH = img.naturalHeight * scale
+  const offsetX = (rect.width - renderedW) / 2
+  const offsetY = (rect.height - renderedH) / 2
+  const faceScaleX = renderedW / img.naturalWidth
+  const faceScaleY = renderedH / img.naturalHeight
+
+  const x = offsetX + fa.x * faceScaleX
+  const y = offsetY + fa.y * faceScaleY
+  const w = fa.w * faceScaleX
+  const h = fa.h * faceScaleY
+
+  ctx.strokeStyle = '#22c55e'
+  ctx.lineWidth = 3
+  ctx.strokeRect(x, y, w, h)
 }
 </script>

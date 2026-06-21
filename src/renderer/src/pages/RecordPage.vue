@@ -36,7 +36,7 @@
           <div v-else-if="currentImage" class="flex-1 relative overflow-hidden rounded" ref="imageContainer">
             <img
               :src="currentImage"
-              class="max-w-full max-h-full object-contain"
+              class="w-full h-full object-contain"
               :class="{ 'opacity-50': !faces.length }"
               ref="displayImage"
               @load="drawFaces"
@@ -265,28 +265,42 @@ function selectFace(index: number) {
   drawFaces()
 }
 
+function getImageRenderRect() {
+  const canvas = faceCanvas.value
+  const img = displayImage.value
+  if (!canvas || !img) return null
+  const rect = canvas.getBoundingClientRect()
+  const scale = Math.min(rect.width / img.naturalWidth, rect.height / img.naturalHeight)
+  const renderedW = img.naturalWidth * scale
+  const renderedH = img.naturalHeight * scale
+  const offsetX = (rect.width - renderedW) / 2
+  const offsetY = (rect.height - renderedH) / 2
+  return { rect, scale, renderedW, renderedH, offsetX, offsetY }
+}
+
 function drawFaces() {
   const canvas = faceCanvas.value
   const img = displayImage.value
   if (!canvas || !img || !faces.value.length) return
 
-  const rect = img.getBoundingClientRect()
-  canvas.width = rect.width
-  canvas.height = rect.height
+  const r = getImageRenderRect()
+  if (!r) return
+  canvas.width = r.rect.width
+  canvas.height = r.rect.height
   imageNaturalWidth.value = img.naturalWidth
   imageNaturalHeight.value = img.naturalHeight
 
   const ctx = canvas.getContext('2d')
   if (!ctx) return
 
-  const scaleX = rect.width / img.naturalWidth
-  const scaleY = rect.height / img.naturalHeight
+  const faceScaleX = r.renderedW / img.naturalWidth
+  const faceScaleY = r.renderedH / img.naturalHeight
 
   for (const face of faces.value) {
-    const x = face.facial_area.x * scaleX
-    const y = face.facial_area.y * scaleY
-    const w = face.facial_area.w * scaleX
-    const h = face.facial_area.h * scaleY
+    const x = r.offsetX + face.facial_area.x * faceScaleX
+    const y = r.offsetY + face.facial_area.y * faceScaleY
+    const w = face.facial_area.w * faceScaleX
+    const h = face.facial_area.h * faceScaleY
 
     ctx.strokeStyle = face.selected ? '#22c55e' : '#ef4444'
     ctx.lineWidth = face.selected ? 3 : 2
@@ -310,15 +324,21 @@ function onCanvasClick(event: MouseEvent) {
   const rect = canvas.getBoundingClientRect()
   const clickX = event.clientX - rect.left
   const clickY = event.clientY - rect.top
-  const scaleX = img.naturalWidth / rect.width
-  const scaleY = img.naturalHeight / rect.height
+
+  const scale = Math.min(rect.width / img.naturalWidth, rect.height / img.naturalHeight)
+  const renderedW = img.naturalWidth * scale
+  const renderedH = img.naturalHeight * scale
+  const offsetX = (rect.width - renderedW) / 2
+  const offsetY = (rect.height - renderedH) / 2
+  const faceScaleX = renderedW / img.naturalWidth
+  const faceScaleY = renderedH / img.naturalHeight
 
   for (let i = faces.value.length - 1; i >= 0; i--) {
     const face = faces.value[i]
-    const x = face.facial_area.x * (rect.width / img.naturalWidth)
-    const y = face.facial_area.y * (rect.height / img.naturalHeight)
-    const w = face.facial_area.w * (rect.width / img.naturalWidth)
-    const h = face.facial_area.h * (rect.height / img.naturalHeight)
+    const x = offsetX + face.facial_area.x * faceScaleX
+    const y = offsetY + face.facial_area.y * faceScaleY
+    const w = face.facial_area.w * faceScaleX
+    const h = face.facial_area.h * faceScaleY
 
     if (clickX >= x && clickX <= x + w && clickY >= y && clickY <= y + h) {
       selectFace(i)

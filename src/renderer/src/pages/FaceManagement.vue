@@ -76,7 +76,7 @@
               v-if="group.image_blob"
               :src="`data:image/jpeg;base64,${group.image_blob}`"
               class="w-10 h-10 object-cover rounded shrink-0 cursor-pointer border border-gray-600"
-              @click.stop="previewImage(`data:image/jpeg;base64,${group.image_blob}`)"
+              @click.stop="previewImage(`data:image/jpeg;base64,${group.image_blob}`, group.facial_area_x, group.facial_area_y, group.facial_area_w, group.facial_area_h)"
             />
             <div v-else class="w-10 h-10 rounded shrink-0 bg-gray-700 flex items-center justify-center text-xs text-gray-400">?</div>
             <div class="flex-1 min-w-0">
@@ -120,8 +120,11 @@
       {{ message }}
     </div>
 
-    <div v-if="previewImg" class="fixed inset-0 z-50 flex items-center justify-center bg-black/80" @click.self="previewImg = ''">
-      <img alt="actor" :src="previewImg" class="max-w-[90vw] max-h-[90vh] object-contain rounded-lg" />
+    <div v-if="previewData" class="fixed inset-0 z-50 flex items-center justify-center bg-black/80" @click.self="previewData = null">
+      <div class="relative inline-flex overflow-hidden rounded-lg">
+        <img ref="previewDisplayImage" :src="previewData.src" class="max-w-[90vw] max-h-[90vh] object-contain" @load="drawPreviewFaces" />
+        <canvas ref="previewFaceCanvas" class="absolute inset-0 w-full h-full pointer-events-none" />
+      </div>
     </div>
 
     <div v-if="showDeleteDialog" class="fixed inset-0 z-50 flex items-center justify-center bg-black/60" @click.self="showDeleteDialog = false">
@@ -175,7 +178,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, nextTick } from 'vue'
 import { getAllActorsWithRecords, deleteVideo, deleteOrphanActors, fileExists, openPath } from '../lib/api'
 import type { ActorGroup, ActorRecord } from '../lib/types'
 
@@ -190,7 +193,9 @@ const cleaning = ref(false)
 const showDeleteDialog = ref(false)
 const pendingDelete = ref<{ actorId: number; record: ActorRecord } | null>(null)
 const expandedActors = ref(new Set<number>())
-const previewImg = ref('')
+const previewData = ref<{ src: string; facialArea: { x: number | null; y: number | null; w: number | null; h: number | null } } | null>(null)
+const previewFaceCanvas = ref<HTMLCanvasElement | null>(null)
+const previewDisplayImage = ref<HTMLImageElement | null>(null)
 const searchQuery = ref('')
 
 const filteredActorGroups = computed(() => {
@@ -316,8 +321,45 @@ function showMessage(msg: string, type: 'success' | 'error') {
   setTimeout(() => { message.value = '' }, 3000)
 }
 
-function previewImage(src: string) {
-  previewImg.value = src
+function previewImage(src: string, facialAreaX: number | null, facialAreaY: number | null, facialAreaW: number | null, facialAreaH: number | null) {
+  previewData.value = {
+    src,
+    facialArea: facialAreaX !== null && facialAreaY !== null && facialAreaW !== null && facialAreaH !== null
+      ? { x: facialAreaX, y: facialAreaY, w: facialAreaW, h: facialAreaH }
+      : null
+  }
+  nextTick(() => drawPreviewFaces())
+}
+
+function drawPreviewFaces() {
+  const canvas = previewFaceCanvas.value
+  const img = previewDisplayImage.value
+  if (!canvas || !img || !previewData.value?.facialArea) return
+
+  const rect = canvas.getBoundingClientRect()
+  canvas.width = rect.width
+  canvas.height = rect.height
+
+  const ctx = canvas.getContext('2d')
+  if (!ctx) return
+
+  const scale = Math.min(rect.width / img.naturalWidth, rect.height / img.naturalHeight)
+  const renderedW = img.naturalWidth * scale
+  const renderedH = img.naturalHeight * scale
+  const offsetX = (rect.width - renderedW) / 2
+  const offsetY = (rect.height - renderedH) / 2
+  const faceScaleX = renderedW / img.naturalWidth
+  const faceScaleY = renderedH / img.naturalHeight
+
+  const fa = previewData.value.facialArea
+  const x = offsetX + fa.x * faceScaleX
+  const y = offsetY + fa.y * faceScaleY
+  const w = fa.w * faceScaleX
+  const h = fa.h * faceScaleY
+
+  ctx.strokeStyle = '#22c55e'
+  ctx.lineWidth = 3
+  ctx.strokeRect(x, y, w, h)
 }
 
 function openVideo(filePath: string) {
