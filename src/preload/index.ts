@@ -42,6 +42,9 @@ const api = {
 
   deleteVideo: (videoId: number): Promise<boolean> => ipcRenderer.invoke('db:deleteVideo', videoId),
 
+  mergeActors: (sourceActorId: number, targetActorId: number): Promise<void> =>
+    ipcRenderer.invoke('db:mergeActors', sourceActorId, targetActorId),
+
   deleteOrphanActors: (): Promise<number> => ipcRenderer.invoke('db:deleteOrphanActors'),
 
   readClipboardImage: (): Promise<{ buffer: ArrayBuffer; dataUrl: string } | null> =>

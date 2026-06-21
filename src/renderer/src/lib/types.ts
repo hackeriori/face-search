@@ -117,6 +117,7 @@ export interface ElectronAPI {
   deleteActorFace: (faceId: number) => Promise<boolean>
   searchFaces: (embedding: number[], maxDistance?: number) => Promise<SearchResult[]>
   getAllActorsWithRecords: () => Promise<ActorGroup[]>
+  mergeActors: (sourceActorId: number, targetActorId: number) => Promise<void>
   deleteVideo: (videoId: number) => Promise<boolean>
   deleteOrphanActors: () => Promise<number>
   searchMatchingActors: (embedding: number[], maxDistance?: number) => Promise<ActorMatchCandidate[]>

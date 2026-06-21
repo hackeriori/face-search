@@ -51,6 +51,10 @@ export async function getAllActorsWithRecords(): Promise<ActorGroup[]> {
   return window.electronAPI.getAllActorsWithRecords()
 }
 
+export async function mergeActors(sourceActorId: number, targetActorId: number): Promise<void> {
+  return window.electronAPI.mergeActors(sourceActorId, targetActorId)
+}
+
 export async function deleteVideo(videoId: number): Promise<boolean> {
   return window.electronAPI.deleteVideo(videoId)
 }

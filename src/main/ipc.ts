@@ -1,5 +1,5 @@
 import { ipcMain, clipboard, dialog, shell, BrowserWindow } from 'electron'
-import { insertFaceRecord, searchSimilarFaces, deleteVideo, deleteOrphanActors, searchMatchingActors, findOrCreateVideo, createActor, addActorFace, hasFaceRecord, getAllActorsWithRecords, getActorFaces, deleteActorFace } from './database'
+import { insertFaceRecord, searchSimilarFaces, deleteVideo, deleteOrphanActors, searchMatchingActors, findOrCreateVideo, createActor, addActorFace, hasFaceRecord, getAllActorsWithRecords, getActorFaces, deleteActorFace, mergeActors } from './database'
 import { checkApi, representImage } from './faceApi'
 import { MpvPlayer, type Bounds } from './mpv'
 import fs from 'fs'
@@ -101,6 +101,10 @@ export function registerIpcHandlers(ipc: typeof ipcMain) {
 
   ipc.handle('db:deleteVideo', async (_event, videoId: number) => {
     return deleteVideo(videoId)
+  })
+
+  ipc.handle('db:mergeActors', async (_event, sourceActorId: number, targetActorId: number) => {
+    return mergeActors(sourceActorId, targetActorId)
   })
 
   ipc.handle('db:deleteOrphanActors', async () => {

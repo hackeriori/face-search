@@ -340,6 +340,33 @@ export function deleteVideo(videoId: number): boolean {
   return result.changes > 0
 }
 
+export function mergeActors(sourceActorId: number, targetActorId: number): void {
+  if (!db) throw new Error('Database not initialized')
+  if (sourceActorId === targetActorId) return
+
+  const d = db
+  const txn = d.transaction(() => {
+    // Reassign face_records from source to target, skipping duplicates
+    const existingRecords = d.prepare('SELECT video_id FROM face_records WHERE actor_id = ?').all(targetActorId) as { video_id: number }[]
+    const existingVideoIds = new Set(existingRecords.map(r => r.video_id))
+
+    const sourceRecords = d.prepare('SELECT id, video_id FROM face_records WHERE actor_id = ?').all(sourceActorId) as { id: number; video_id: number }[]
+    for (const record of sourceRecords) {
+      if (!existingVideoIds.has(record.video_id)) {
+        d.prepare('UPDATE face_records SET actor_id = ? WHERE id = ?').run(targetActorId, record.id)
+      }
+    }
+
+    // Reassign actor_faces from source to target
+    d.prepare('UPDATE actor_faces SET actor_id = ? WHERE actor_id = ?').run(targetActorId, sourceActorId)
+
+    // Delete source actor (cascades remaining face_records and actor_faces)
+    d.prepare('DELETE FROM actors WHERE id = ?').run(sourceActorId)
+  })
+
+  txn()
+}
+
 export function deleteOrphanActors(): number {
   if (!db) throw new Error('Database not initialized')
   const result = db.prepare(`
