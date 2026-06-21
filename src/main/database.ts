@@ -81,13 +81,6 @@ export function getDatabase(): Database.Database | null {
 
 // --- Types ---
 
-export interface FaceRecord {
-  id: number
-  actor_id: number
-  video_id: number
-  video_path: string
-}
-
 export interface AddActorFaceParams {
   image_blob: Buffer
   facial_area_x: number
@@ -249,16 +242,6 @@ export function searchSimilarFaces(embedding: Buffer, maxDistance: number = 0.5)
   return rows
 }
 
-export function getAllFaceRecords(): FaceRecord[] {
-  if (!db) throw new Error('Database not initialized')
-  return db.prepare(`
-    SELECT fr.id, fr.actor_id, fr.video_id, v.path AS video_path
-    FROM face_records fr
-    JOIN videos v ON v.id = fr.video_id
-    ORDER BY fr.id DESC
-  `).all() as FaceRecord[]
-}
-
 export function getAllActorsWithRecords(): any[] {
   if (!db) throw new Error('Database not initialized')
   const rows = db.prepare(`
@@ -332,12 +315,6 @@ export function getActorFaces(actorId: number): ActorFaceRow[] {
 export function deleteActorFace(faceId: number): boolean {
   if (!db) throw new Error('Database not initialized')
   const result = db.prepare('DELETE FROM actor_faces WHERE id = ?').run(faceId)
-  return result.changes > 0
-}
-
-export function deleteFaceRecord(id: number): boolean {
-  if (!db) throw new Error('Database not initialized')
-  const result = db.prepare('DELETE FROM face_records WHERE id = ?').run(id)
   return result.changes > 0
 }
 
