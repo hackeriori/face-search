@@ -72,6 +72,27 @@ export interface ActorGroup {
   records: ActorRecord[]
 }
 
+export interface ActorFace {
+  id: number
+  actor_id: number
+  image_blob: string | null
+  facial_area_x: number | null
+  facial_area_y: number | null
+  facial_area_w: number | null
+  facial_area_h: number | null
+  face_confidence: number | null
+}
+
+export interface AddActorFaceParams {
+  image_blob: ArrayBuffer | Uint8Array
+  facial_area_x: number
+  facial_area_y: number
+  facial_area_w: number
+  facial_area_h: number
+  face_confidence: number
+  embedding: number[]
+}
+
 export interface MpvBounds {
   x: number
   y: number
@@ -90,16 +111,10 @@ export interface ElectronAPI {
   checkApi: () => Promise<ApiCheckResult>
   representImage: (imageBuffer: ArrayBuffer) => Promise<{ result: DetectedFace[] }>
   insertFaceRecord: (actorId: number, videoId: number) => Promise<number>
-  createActor: (params: {
-    name?: string
-    image_blob: ArrayBuffer | Uint8Array
-    facial_area_x: number
-    facial_area_y: number
-    facial_area_w: number
-    facial_area_h: number
-    face_confidence: number
-    embedding: number[]
-  }) => Promise<number>
+  createActor: (params: { name?: string }) => Promise<number>
+  addActorFace: (actorId: number, params: AddActorFaceParams) => Promise<number>
+  getActorFaces: (actorId: number) => Promise<ActorFace[]>
+  deleteActorFace: (faceId: number) => Promise<boolean>
   searchFaces: (embedding: number[], maxDistance?: number) => Promise<SearchResult[]>
   getAllActorsWithRecords: () => Promise<ActorGroup[]>
   deleteVideo: (videoId: number) => Promise<boolean>

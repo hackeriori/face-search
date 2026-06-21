@@ -1,4 +1,4 @@
-import type { ApiCheckResult, SearchResult, DetectedFace, ActorGroup } from './types'
+import type { ApiCheckResult, SearchResult, DetectedFace, ActorGroup, AddActorFaceParams, ActorFace } from './types'
 
 export async function checkApi(): Promise<ApiCheckResult> {
   return window.electronAPI.checkApi()
@@ -15,17 +15,20 @@ export async function insertFaceRecord(actorId: number, videoId: number): Promis
   return window.electronAPI.insertFaceRecord(actorId, videoId)
 }
 
-export async function createActor(params: {
-  name?: string
-  image_blob: ArrayBuffer | Uint8Array
-  facial_area_x: number
-  facial_area_y: number
-  facial_area_w: number
-  facial_area_h: number
-  face_confidence: number
-  embedding: number[]
-}): Promise<number> {
+export async function createActor(params: { name?: string }): Promise<number> {
   return window.electronAPI.createActor(params)
+}
+
+export async function addActorFace(actorId: number, params: AddActorFaceParams): Promise<number> {
+  return window.electronAPI.addActorFace(actorId, params)
+}
+
+export async function getActorFaces(actorId: number): Promise<ActorFace[]> {
+  return window.electronAPI.getActorFaces(actorId)
+}
+
+export async function deleteActorFace(faceId: number): Promise<boolean> {
+  return window.electronAPI.deleteActorFace(faceId)
 }
 
 export async function searchFaces(embedding: number[], maxDistance?: number): Promise<SearchResult[]> {

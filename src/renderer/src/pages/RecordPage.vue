@@ -130,6 +130,42 @@
       </div>
     </Teleport>
 
+    <!-- Add Reference Dialog -->
+    <Teleport to="body">
+      <div v-if="showAddRefDialog" class="fixed inset-0 z-50 bg-black/60" @click.self="cancelAddRefDialog">
+        <div class="absolute inset-0 flex items-center justify-center">
+          <div class="bg-gray-800 rounded-lg shadow-xl border border-gray-600 w-96">
+            <div class="px-5 py-4 border-b border-gray-700">
+              <h3 class="text-base font-medium text-gray-200">添加参考数据</h3>
+            </div>
+            <div class="px-5 py-4 space-y-2">
+              <p class="text-sm text-gray-300">
+                当前人脸与演员 #{{ refActorId }} 的匹配度为
+                <span class="text-blue-400 font-bold">{{ refSimilarity }}%</span>。
+              </p>
+              <p class="text-sm text-gray-400">
+                是否将当前人脸添加为该演员的参考数据？添加后可在不同造型下更准确地识别该演员。
+              </p>
+            </div>
+            <div class="px-5 py-3 border-t border-gray-700 flex items-center justify-end gap-2">
+              <button
+                @click="rejectAddRef"
+                class="px-3 py-1.5 bg-gray-600 hover:bg-gray-500 rounded text-sm transition-colors"
+              >
+                仅关联视频
+              </button>
+              <button
+                @click="confirmAddRef"
+                class="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 rounded text-sm transition-colors"
+              >
+                添加参考并关联
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </Teleport>
+
     <div v-if="message" class="fixed bottom-4 right-4 px-4 py-2 rounded-lg shadow-lg text-sm"
       :class="messageType === 'success' ? 'bg-green-600' : 'bg-red-600'"
     >
@@ -142,7 +178,7 @@
 import { ref, computed, nextTick, onMounted, onUnmounted } from 'vue'
 import VideoPlayer from '../components/VideoPlayer.vue'
 import ImageInput from '../components/ImageInput.vue'
-import { representImage, insertFaceRecord, searchMatchingActors, findOrCreateVideo, createActor, hasFaceRecord, readClipboardImage } from '../lib/api'
+import { representImage, insertFaceRecord, searchMatchingActors, findOrCreateVideo, createActor, addActorFace, hasFaceRecord, readClipboardImage } from '../lib/api'
 import type { DetectedFace, ActorMatchCandidate } from '../lib/types'
 
 const videoPath = ref('')
@@ -170,6 +206,12 @@ const showActorDialog = ref(false)
 const actorCandidates = ref<ActorMatchCandidate[]>([])
 let dialogResolve: ((actorId: number | null) => void) | null = null
 let dialogReject: (() => void) | null = null
+
+// Add reference dialog
+const showAddRefDialog = ref(false)
+const refSimilarity = ref(0)
+const refActorId = ref(0)
+let addRefResolve: ((value: boolean) => void) | null = null
 
 async function handleKeyboardPaste(e: KeyboardEvent) {
   if ((e.ctrlKey || e.metaKey) && e.key === 'v') {
@@ -359,11 +401,11 @@ async function resolveActorByDialog(
     face_confidence: number
     embedding: number[]
   }
-): Promise<number> {
+): Promise<{ actorId: number; wasExistingActor: boolean; similarity?: number }> {
   const candidates = await searchMatchingActors(embedding)
   if (candidates.length === 0) {
-    return createActor({
-      name: name || undefined,
+    const actorId = await createActor({ name: name || undefined })
+    await addActorFace(actorId, {
       image_blob: faceData.image_blob,
       facial_area_x: faceData.facial_area_x,
       facial_area_y: faceData.facial_area_y,
@@ -372,12 +414,13 @@ async function resolveActorByDialog(
       face_confidence: faceData.face_confidence,
       embedding: faceData.embedding
     })
+    return { actorId, wasExistingActor: false }
   }
 
   actorCandidates.value = candidates
   showActorDialog.value = true
 
-  return new Promise<number>((resolve, reject) => {
+  return new Promise<{ actorId: number; wasExistingActor: boolean; similarity?: number }>((resolve, reject) => {
     dialogReject = () => {
       showActorDialog.value = false
       dialogResolve = null
@@ -389,18 +432,21 @@ async function resolveActorByDialog(
       dialogResolve = null
       dialogReject = null
       if (actorId !== null) {
-        resolve(actorId)
+        const candidate = candidates.find(c => c.actor_id === actorId)
+        resolve({ actorId, wasExistingActor: true, similarity: candidate?.similarity })
       } else {
-        createActor({
-          name: name || undefined,
-          image_blob: faceData.image_blob,
-          facial_area_x: faceData.facial_area_x,
-          facial_area_y: faceData.facial_area_y,
-          facial_area_w: faceData.facial_area_w,
-          facial_area_h: faceData.facial_area_h,
-          face_confidence: faceData.face_confidence,
-          embedding: faceData.embedding
-        }).then(resolve)
+        createActor({ name: name || undefined }).then(async (newActorId) => {
+          await addActorFace(newActorId, {
+            image_blob: faceData.image_blob,
+            facial_area_x: faceData.facial_area_x,
+            facial_area_y: faceData.facial_area_y,
+            facial_area_w: faceData.facial_area_w,
+            facial_area_h: faceData.facial_area_h,
+            face_confidence: faceData.face_confidence,
+            embedding: faceData.embedding
+          })
+          resolve({ actorId: newActorId, wasExistingActor: false })
+        })
       }
     }
   })
@@ -416,6 +462,24 @@ function rejectActorMatch() {
 
 function cancelActorDialog() {
   dialogReject?.()
+}
+
+function confirmAddRef() {
+  showAddRefDialog.value = false
+  addRefResolve?.(true)
+  addRefResolve = null
+}
+
+function rejectAddRef() {
+  showAddRefDialog.value = false
+  addRefResolve?.(false)
+  addRefResolve = null
+}
+
+function cancelAddRefDialog() {
+  showAddRefDialog.value = false
+  addRefResolve?.(false)
+  addRefResolve = null
 }
 
 async function saveFace() {
@@ -439,35 +503,49 @@ async function saveFace() {
     const safeBlob = view.slice()
     const face = selectedFace.value
 
+    const faceData = {
+      image_blob: safeBlob,
+      facial_area_x: face.facial_area.x,
+      facial_area_y: face.facial_area.y,
+      facial_area_w: face.facial_area.w,
+      facial_area_h: face.facial_area.h,
+      face_confidence: face.face_confidence,
+      embedding: [...face.embedding]
+    }
+
     const videoId = await findOrCreateVideo(savedVideoPath.value)
 
-    let actorId: number
+    let resolution: { actorId: number; wasExistingActor: boolean; similarity?: number }
     try {
-      actorId = await resolveActorByDialog(
+      resolution = await resolveActorByDialog(
         [...face.embedding],
         actorName.value,
-        {
-          image_blob: safeBlob,
-          facial_area_x: face.facial_area.x,
-          facial_area_y: face.facial_area.y,
-          facial_area_w: face.facial_area.w,
-          facial_area_h: face.facial_area.h,
-          face_confidence: face.face_confidence,
-          embedding: [...face.embedding]
-        }
+        faceData
       )
     } catch {
       return
     }
 
-    const exists = await hasFaceRecord(actorId, videoId)
+    if (resolution.wasExistingActor && resolution.similarity !== undefined) {
+      refActorId.value = resolution.actorId
+      refSimilarity.value = resolution.similarity
+      showAddRefDialog.value = true
+      const shouldAdd = await new Promise<boolean>((resolve) => {
+        addRefResolve = resolve
+      })
+      if (shouldAdd) {
+        await addActorFace(resolution.actorId, faceData)
+      }
+    }
+
+    const exists = await hasFaceRecord(resolution.actorId, videoId)
     if (exists) {
       showMessage('该演员在此视频中已存在记录', 'error')
       saving.value = false
       return
     }
 
-    await insertFaceRecord(actorId, videoId)
+    await insertFaceRecord(resolution.actorId, videoId)
     showMessage('人脸保存成功', 'success')
   } catch (e: any) {
     showMessage('保存失败: ' + e.message, 'error')

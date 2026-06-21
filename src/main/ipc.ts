@@ -1,5 +1,5 @@
 import { ipcMain, clipboard, dialog, shell, BrowserWindow } from 'electron'
-import { insertFaceRecord, searchSimilarFaces, deleteVideo, deleteOrphanActors, searchMatchingActors, findOrCreateVideo, createActor, hasFaceRecord, getAllActorsWithRecords } from './database'
+import { insertFaceRecord, searchSimilarFaces, deleteVideo, deleteOrphanActors, searchMatchingActors, findOrCreateVideo, createActor, addActorFace, hasFaceRecord, getAllActorsWithRecords, getActorFaces, deleteActorFace } from './database'
 import { checkApi, representImage } from './faceApi'
 import { MpvPlayer, type Bounds } from './mpv'
 import fs from 'fs'
@@ -26,8 +26,11 @@ export function registerIpcHandlers(ipc: typeof ipcMain) {
     return insertFaceRecord(actorId, videoId)
   })
 
-  ipc.handle('db:createActor', async (_event, params: {
-    name?: string
+  ipc.handle('db:createActor', async (_event, params: { name?: string }) => {
+    return createActor(params.name)
+  })
+
+  ipc.handle('db:addActorFace', async (_event, actorId: number, params: {
     image_blob: ArrayBuffer
     facial_area_x: number
     facial_area_y: number
@@ -38,8 +41,7 @@ export function registerIpcHandlers(ipc: typeof ipcMain) {
   }) => {
     const embeddingBuffer = Buffer.from(new Float32Array(params.embedding).buffer)
     const imageBuffer = Buffer.from(params.image_blob)
-    return createActor({
-      name: params.name,
+    return addActorFace(actorId, {
       image_blob: imageBuffer,
       facial_area_x: params.facial_area_x,
       facial_area_y: params.facial_area_y,
@@ -48,6 +50,18 @@ export function registerIpcHandlers(ipc: typeof ipcMain) {
       face_confidence: params.face_confidence,
       embedding: embeddingBuffer
     })
+  })
+
+  ipc.handle('db:getActorFaces', async (_event, actorId: number) => {
+    const rows = getActorFaces(actorId)
+    return rows.map(row => ({
+      ...row,
+      image_blob: row.image_blob ? row.image_blob.toString('base64') : null
+    }))
+  })
+
+  ipc.handle('db:deleteActorFace', async (_event, faceId: number) => {
+    return deleteActorFace(faceId)
   })
 
   ipc.handle('db:searchFaces', async (_event, embedding: number[], maxDistance?: number) => {
