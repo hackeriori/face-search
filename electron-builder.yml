@@ -24,5 +24,6 @@ nsis:
 asar: true
 asarUnpack:
   - "**/*.node"
+  - "node_modules/sqlite-vec*/**"
 nodeGypRebuild: false
 npmRebuild: true

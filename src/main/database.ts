@@ -50,29 +50,23 @@ export function initDatabase(dbPath: string): Database.Database {
 }
 
 function loadVecExtension(database: Database.Database) {
-  const possiblePaths = [
-    path.join(app.getAppPath(), 'node_modules', 'sqlite-vec', 'dist', 'vec0.o'),
-    path.join(app.getAppPath(), 'node_modules', 'sqlite-vec', 'dist', 'vec0.so'),
-    path.join(app.getAppPath(), 'node_modules', 'sqlite-vec', 'dist', 'vec0.dylib'),
-    path.join(app.getAppPath(), 'node_modules', 'sqlite-vec', 'dist', 'vec0.dll'),
-  ]
-
-  for (const p of possiblePaths) {
-    try {
-      database.loadExtension(p)
-      return
-    } catch {
-      continue
-    }
-  }
-
-  console.warn('[database] sqlite-vec extension not loaded via loadExtension, trying built-in...')
   try {
     const sqVec = require('sqlite-vec')
-    sqVec.load(db)
-  } catch (e) {
-    console.warn('[database] sqlite-vec not available:', e)
+    sqVec.load(database)
+    return
+  } catch {}
+
+  const dllDir = path.join('node_modules', 'sqlite-vec', 'node_modules', `sqlite-vec-windows-${process.arch}`, 'vec0.dll')
+  const paths = [
+    path.join(process.resourcesPath, 'app.asar.unpacked', dllDir),
+    path.join(path.dirname(app.getPath('exe')), 'resources', 'app.asar.unpacked', dllDir),
+  ]
+
+  for (const p of paths) {
+    try { database.loadExtension(p); return } catch {}
   }
+
+  console.error('[database] sqlite-vec could not be loaded')
 }
 
 export function getDatabase(): Database.Database | null {
