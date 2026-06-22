@@ -3,7 +3,12 @@
     <div class="grid grid-cols-2 gap-4 flex-1 min-h-0">
       <div class="flex flex-col gap-3 min-h-0">
         <div class="bg-gray-800 rounded-lg p-3 border border-gray-700 flex-1 flex flex-col min-h-0">
-          <h2 class="text-sm font-medium text-gray-300 mb-2 min-w-0">视频来源 <span v-if="savedVideoPath" class="text-xs text-gray-400 font-normal ml-2 inline-block max-w-full truncate" :title="savedVideoPath">{{ savedVideoPath }}</span></h2>
+          <div class="flex items-center gap-2 justify-between mb-2">
+            <div class="text-sm font-medium text-gray-300 shrink-0">视频来源</div>
+            <div v-if="savedVideoPath" class="w-0 grow text-xs text-gray-400 font-normal truncate"
+                 :title="savedVideoPath">{{ savedVideoPath }}
+            </div>
+          </div>
           <div class="flex-1 min-h-0">
             <VideoPlayer
               ref="videoPlayerRef"
@@ -12,15 +17,22 @@
             />
           </div>
           <div class="mt-2 flex gap-2">
-            <button @click="selectVideo" class="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 rounded text-sm transition-colors">播放视频</button>
-            <button @click="openVideo" class="px-3 py-1.5 bg-purple-600 hover:bg-purple-700 rounded text-sm transition-colors">打开视频</button>
-            <button @click="captureFrame" :disabled="!videoPath" class="px-3 py-1.5 bg-green-600 hover:bg-green-700 rounded text-sm disabled:opacity-40 transition-colors">截取当前帧</button>
+            <button @click="selectVideo"
+                    class="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 rounded text-sm transition-colors">播放视频
+            </button>
+            <button @click="openVideo"
+                    class="px-3 py-1.5 bg-purple-600 hover:bg-purple-700 rounded text-sm transition-colors">打开视频
+            </button>
+            <button @click="captureFrame" :disabled="!videoPath"
+                    class="px-3 py-1.5 bg-green-600 hover:bg-green-700 rounded text-sm disabled:opacity-40 transition-colors">
+              截取当前帧
+            </button>
           </div>
         </div>
 
         <div class="bg-gray-800 rounded-lg p-3 border border-gray-700">
           <h2 class="text-sm font-medium text-gray-300 mb-2">图片来源</h2>
-          <ImageInput ref="imageInputRef" @paste-start="pasting = true" @image-selected="onImageSelected" />
+          <ImageInput ref="imageInputRef" @paste-start="pasting = true" @image-selected="onImageSelected"/>
         </div>
       </div>
 
@@ -90,7 +102,7 @@
                     class="w-full h-full object-cover"
                   />
                   <div class="absolute border-2 border-green-500 pointer-events-none"
-                    :style="{
+                       :style="{
                       left: (candidate.facial_area_x * (80 / imageNaturalWidth)) + 'px',
                       top: (candidate.facial_area_y * (80 / imageNaturalHeight)) + 'px',
                       width: (candidate.facial_area_w * (80 / imageNaturalWidth)) + 'px',
@@ -102,7 +114,7 @@
                   <div class="flex items-center gap-2">
                     <span class="text-sm font-medium text-gray-200">演员 #{{ candidate.actor_id }}</span>
                     <span class="text-xs px-2 py-0.5 rounded font-bold"
-                      :class="candidate.similarity >= 80 ? 'bg-green-600 text-white' : candidate.similarity >= 60 ? 'bg-yellow-600 text-white' : 'bg-red-600 text-white'"
+                          :class="candidate.similarity >= 80 ? 'bg-green-600 text-white' : candidate.similarity >= 60 ? 'bg-yellow-600 text-white' : 'bg-red-600 text-white'"
                     >
                       {{ candidate.similarity }}%
                     </span>
@@ -167,7 +179,7 @@
     </Teleport>
 
     <div v-if="message" class="fixed bottom-4 right-4 px-4 py-2 rounded-lg shadow-lg text-sm"
-      :class="messageType === 'success' ? 'bg-green-600' : 'bg-red-600'"
+         :class="messageType === 'success' ? 'bg-green-600' : 'bg-red-600'"
     >
       {{ message }}
     </div>
@@ -175,11 +187,14 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, nextTick, onMounted, onUnmounted } from 'vue'
+import {ref, computed, nextTick, onMounted, onUnmounted} from 'vue'
 import VideoPlayer from '../components/VideoPlayer.vue'
 import ImageInput from '../components/ImageInput.vue'
-import { representImage, insertFaceRecord, searchMatchingActors, findOrCreateVideo, createActor, addActorFace, hasFaceRecord, readClipboardImage } from '../lib/api'
-import type { DetectedFace, ActorMatchCandidate } from '../lib/types'
+import {
+  representImage, insertFaceRecord, searchMatchingActors, findOrCreateVideo, createActor, addActorFace, hasFaceRecord,
+  readClipboardImage
+} from '../lib/api'
+import type {DetectedFace, ActorMatchCandidate} from '../lib/types'
 
 const videoPath = ref('')
 const savedVideoPath = ref('')
@@ -237,7 +252,7 @@ onUnmounted(() => window.removeEventListener('keydown', handleKeyboardPaste))
 
 async function selectVideo() {
   const result = await window.electronAPI.openFile({
-    filters: [{ name: 'Video Files', extensions: ['mp4', 'webm', 'ogg', 'wmv', 'mkv', 'avi', 'mov'] }]
+    filters: [{name: 'Video Files', extensions: ['mp4', 'webm', 'ogg', 'wmv', 'mkv', 'avi', 'mov']}]
   })
   if (!result.canceled && result.filePaths.length > 0) {
     videoPath.value = result.filePaths[0]
@@ -247,7 +262,7 @@ async function selectVideo() {
 
 async function openVideo() {
   const result = await window.electronAPI.openFile({
-    filters: [{ name: 'Video Files', extensions: ['mp4', 'webm', 'ogg', 'wmv', 'mkv', 'avi', 'mov'] }]
+    filters: [{name: 'Video Files', extensions: ['mp4', 'webm', 'ogg', 'wmv', 'mkv', 'avi', 'mov']}]
   })
   if (!result.canceled && result.filePaths.length > 0) {
     savedVideoPath.value = result.filePaths[0]
@@ -259,13 +274,13 @@ function captureFrame() {
   videoPlayerRef.value?.captureFrame()
 }
 
-async function onFrameCaptured(data: { dataUrl: string; buffer: ArrayBuffer }) {
+async function onFrameCaptured(data: {dataUrl: string; buffer: ArrayBuffer}) {
   currentImage.value = data.dataUrl
   currentImageBuffer.value = data.buffer
   await detectFaces(data.dataUrl)
 }
 
-async function onImageSelected(data: { dataUrl: string; buffer: ArrayBuffer }) {
+async function onImageSelected(data: {dataUrl: string; buffer: ArrayBuffer}) {
   currentImage.value = data.dataUrl
   currentImageBuffer.value = data.buffer
   await detectFaces(data.dataUrl)
@@ -289,7 +304,7 @@ async function detectFaces(imageDataUrl: string) {
   selectedFace.value = null
   try {
     const result = await representImage(imageDataUrl)
-    faces.value = result.result.map((f: DetectedFace) => ({ ...f, selected: false }))
+    faces.value = result.result.map((f: DetectedFace) => ({...f, selected: false}))
     if (faces.value.length === 1) {
       selectFace(0)
     }
@@ -320,7 +335,7 @@ function getImageRenderRect() {
   const renderedH = img.naturalHeight * scale
   const offsetX = (rect.width - renderedW) / 2
   const offsetY = (rect.height - renderedH) / 2
-  return { rect, scale, renderedW, renderedH, offsetX, offsetY }
+  return {rect, scale, renderedW, renderedH, offsetX, offsetY}
 }
 
 function drawFaces() {
@@ -404,10 +419,10 @@ async function resolveActorByDialog(
     face_confidence: number
     embedding: number[]
   }
-): Promise<{ actorId: number; wasExistingActor: boolean; similarity?: number }> {
+): Promise<{actorId: number; wasExistingActor: boolean; similarity?: number}> {
   const candidates = await searchMatchingActors(embedding)
   if (candidates.length === 0) {
-    const actorId = await createActor({ name: name || undefined })
+    const actorId = await createActor({name: name || undefined})
     await addActorFace(actorId, {
       image_blob: faceData.image_blob,
       facial_area_x: faceData.facial_area_x,
@@ -417,13 +432,13 @@ async function resolveActorByDialog(
       face_confidence: faceData.face_confidence,
       embedding: faceData.embedding
     })
-    return { actorId, wasExistingActor: false }
+    return {actorId, wasExistingActor: false}
   }
 
   actorCandidates.value = candidates
   showActorDialog.value = true
 
-  return new Promise<{ actorId: number; wasExistingActor: boolean; similarity?: number }>((resolve, reject) => {
+  return new Promise<{actorId: number; wasExistingActor: boolean; similarity?: number}>((resolve, reject) => {
     dialogReject = () => {
       showActorDialog.value = false
       dialogResolve = null
@@ -436,9 +451,9 @@ async function resolveActorByDialog(
       dialogReject = null
       if (actorId !== null) {
         const candidate = candidates.find(c => c.actor_id === actorId)
-        resolve({ actorId, wasExistingActor: true, similarity: candidate?.similarity })
+        resolve({actorId, wasExistingActor: true, similarity: candidate?.similarity})
       } else {
-        createActor({ name: name || undefined }).then(async (newActorId) => {
+        createActor({name: name || undefined}).then(async (newActorId) => {
           await addActorFace(newActorId, {
             image_blob: faceData.image_blob,
             facial_area_x: faceData.facial_area_x,
@@ -448,7 +463,7 @@ async function resolveActorByDialog(
             face_confidence: faceData.face_confidence,
             embedding: faceData.embedding
           })
-          resolve({ actorId: newActorId, wasExistingActor: false })
+          resolve({actorId: newActorId, wasExistingActor: false})
         })
       }
     }
@@ -518,7 +533,7 @@ async function saveFace() {
 
     const videoId = await findOrCreateVideo(savedVideoPath.value)
 
-    let resolution: { actorId: number; wasExistingActor: boolean; similarity?: number }
+    let resolution: {actorId: number; wasExistingActor: boolean; similarity?: number}
     try {
       resolution = await resolveActorByDialog(
         [...face.embedding],
@@ -560,6 +575,8 @@ async function saveFace() {
 function showMessage(msg: string, type: 'success' | 'error') {
   message.value = msg
   messageType.value = type
-  setTimeout(() => { message.value = '' }, 3000)
+  setTimeout(() => {
+    message.value = ''
+  }, 3000)
 }
 </script>
