@@ -96,19 +96,9 @@
                 :key="candidate.actor_id"
                 class="flex items-center gap-4 bg-gray-700/50 rounded-lg p-3 border border-gray-600 hover:border-blue-500 transition-colors"
               >
-                <div class="relative shrink-0 w-20 h-20 rounded overflow-hidden bg-gray-900">
-                  <img
-                    :src="`data:image/jpeg;base64,${candidate.image_blob}`"
-                    class="w-full h-full object-cover"
-                  />
-                  <div class="absolute border-2 border-green-500 pointer-events-none"
-                       :style="{
-                      left: (candidate.facial_area_x * (80 / imageNaturalWidth)) + 'px',
-                      top: (candidate.facial_area_y * (80 / imageNaturalHeight)) + 'px',
-                      width: (candidate.facial_area_w * (80 / imageNaturalWidth)) + 'px',
-                      height: (candidate.facial_area_h * (80 / imageNaturalHeight)) + 'px'
-                    }"
-                  ></div>
+                <div class="relative shrink-0 w-auto h-60 rounded overflow-hidden bg-gray-900">
+                  <img :src="`data:image/jpeg;base64,${candidate.image_blob}`"
+                       class="w-full h-full object-cover" alt=""/>
                 </div>
                 <div class="flex-1 min-w-0">
                   <div class="flex items-center gap-2">
