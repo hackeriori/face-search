@@ -24,6 +24,7 @@ export interface ApiCheckResult {
 
 export interface ActorMatchCandidate {
   actor_id: number
+  name: string | null
   distance: number
   similarity: number
   image_blob: string
@@ -36,6 +37,7 @@ export interface ActorMatchCandidate {
 export interface SearchResult {
   id: number
   actor_id: number
+  name: string | null
   video_id: number
   video_path: string
   image_blob: string
@@ -50,6 +52,7 @@ export interface SearchResult {
 
 export interface SearchResultGroup {
   actor_id: number
+  name: string | null
   items: SearchResult[]
   best_match: SearchResult
 }

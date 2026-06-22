@@ -94,29 +94,26 @@
               <div
                 v-for="candidate in actorCandidates"
                 :key="candidate.actor_id"
-                class="flex items-center gap-4 bg-gray-700/50 rounded-lg p-3 border border-gray-600 hover:border-blue-500 transition-colors"
+                class="flex items-center gap-4 justify-between bg-gray-700/50 rounded-lg p-3 border border-gray-600 hover:border-blue-500 transition-colors"
               >
                 <div class="relative shrink-0 w-auto h-60 rounded overflow-hidden bg-gray-900">
                   <img :src="`data:image/jpeg;base64,${candidate.image_blob}`"
                        class="w-full h-full object-cover" alt=""/>
                 </div>
-                <div class="flex-1 min-w-0">
-                  <div class="flex items-center gap-2">
-                    <span class="text-sm font-medium text-gray-200">演员 #{{ candidate.actor_id }}</span>
+                <div class="flex flex-col items-center">
+                  <div class="text-sm font-medium text-gray-200">{{ candidate.name || `演员 #${candidate.actor_id}` }}</div>
+                  <div class="text-xs text-gray-400 my-2">相似度:
                     <span class="text-xs px-2 py-0.5 rounded font-bold"
                           :class="candidate.similarity >= 80 ? 'bg-green-600 text-white' : candidate.similarity >= 60 ? 'bg-yellow-600 text-white' : 'bg-red-600 text-white'"
                     >
                       {{ candidate.similarity }}%
                     </span>
                   </div>
-                  <div class="text-xs text-gray-400 mt-1">相似度: {{ candidate.similarity }}%</div>
+                  <button @click="selectActorMatch(candidate.actor_id)"
+                          class="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 rounded text-sm shrink-0 transition-colors">
+                    同一演员
+                  </button>
                 </div>
-                <button
-                  @click="selectActorMatch(candidate.actor_id)"
-                  class="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 rounded text-sm shrink-0 transition-colors"
-                >
-                  同一演员
-                </button>
               </div>
             </div>
             <div class="px-5 py-3 border-t border-gray-700 flex items-center justify-end gap-2 shrink-0">

@@ -98,6 +98,7 @@ export interface ActorFaceRow {
 
 export interface ActorMatchCandidate {
   actor_id: number
+  name: string | null
   distance: number
   similarity: number
   image_blob: Buffer
@@ -174,6 +175,7 @@ export function searchMatchingActors(embedding: Buffer, maxDistance: number = 0.
     SELECT * FROM (
       SELECT
         af.actor_id,
+        a.name,
         af.image_blob,
         af.facial_area_x,
         af.facial_area_y,
@@ -182,6 +184,7 @@ export function searchMatchingActors(embedding: Buffer, maxDistance: number = 0.
         vec_distance_cosine(af.embedding, ?) AS distance,
         ROW_NUMBER() OVER (PARTITION BY af.actor_id ORDER BY vec_distance_cosine(af.embedding, ?) ASC) AS rn
       FROM actor_faces af
+      JOIN actors a ON a.id = af.actor_id
       WHERE af.embedding IS NOT NULL
         AND vec_distance_cosine(af.embedding, ?) <= ?
     ) ranked
@@ -192,6 +195,7 @@ export function searchMatchingActors(embedding: Buffer, maxDistance: number = 0.
 
   return rows.map((row: any) => ({
     actor_id: row.actor_id,
+    name: row.name,
     distance: row.distance,
     similarity: Math.round((1 - row.distance) * 10000) / 100,
     image_blob: row.image_blob,
@@ -224,10 +228,11 @@ export function searchSimilarFaces(embedding: Buffer, maxDistance: number = 0.5)
       fr.id, fr.actor_id, fr.video_id, v.path AS video_path,
       bf.image_blob, bf.facial_area_x, bf.facial_area_y,
       bf.facial_area_w, bf.facial_area_h, bf.face_confidence,
-      bf.distance
+      bf.distance, a.name
     FROM best_faces bf
     JOIN face_records fr ON fr.actor_id = bf.actor_id
     JOIN videos v ON v.id = fr.video_id
+    LEFT JOIN actors a ON a.id = bf.actor_id
     WHERE bf.rn = 1
     ORDER BY bf.distance ASC, fr.id DESC
     LIMIT 200

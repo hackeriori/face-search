@@ -1,10 +1,13 @@
-import type { ApiCheckResult, SearchResult, DetectedFace, ActorGroup, AddActorFaceParams, ActorFace } from './types'
+import type {
+  ApiCheckResult, SearchResult, DetectedFace, ActorGroup, AddActorFaceParams, ActorFace,
+  ActorMatchCandidate
+} from './types'
 
 export async function checkApi(): Promise<ApiCheckResult> {
   return window.electronAPI.checkApi()
 }
 
-export async function representImage(imageDataUrl: string): Promise<{ result: DetectedFace[] }> {
+export async function representImage(imageDataUrl: string): Promise<{result: DetectedFace[]}> {
   const response = await fetch(imageDataUrl)
   const blob = await response.blob()
   const buffer = await blob.arrayBuffer()
@@ -15,7 +18,7 @@ export async function insertFaceRecord(actorId: number, videoId: number): Promis
   return window.electronAPI.insertFaceRecord(actorId, videoId)
 }
 
-export async function createActor(params: { name?: string }): Promise<number> {
+export async function createActor(params: {name?: string}): Promise<number> {
   return window.electronAPI.createActor(params)
 }
 
@@ -35,7 +38,7 @@ export async function searchFaces(embedding: number[], maxDistance?: number): Pr
   return window.electronAPI.searchFaces(embedding, maxDistance)
 }
 
-export async function searchMatchingActors(embedding: number[], maxDistance?: number): Promise<any[]> {
+export async function searchMatchingActors(embedding: number[], maxDistance?: number): Promise<ActorMatchCandidate[]> {
   return window.electronAPI.searchMatchingActors(embedding, maxDistance)
 }
 
@@ -67,15 +70,15 @@ export async function deleteOrphanActors(): Promise<number> {
   return window.electronAPI.deleteOrphanActors()
 }
 
-export async function readClipboardImage(): Promise<{ buffer: ArrayBuffer; dataUrl: string } | null> {
+export async function readClipboardImage(): Promise<{buffer: ArrayBuffer; dataUrl: string} | null> {
   return window.electronAPI.readClipboardImage()
 }
 
-export async function openFile(options?: any): Promise<{ canceled: boolean; filePaths: string[] }> {
+export async function openFile(options?: any): Promise<{canceled: boolean; filePaths: string[]}> {
   return window.electronAPI.openFile(options)
 }
 
-export async function readFileAsDataUrl(filePath: string): Promise<{ dataUrl: string; buffer: ArrayBuffer }> {
+export async function readFileAsDataUrl(filePath: string): Promise<{dataUrl: string; buffer: ArrayBuffer}> {
   return window.electronAPI.readFileAsDataUrl(filePath)
 }
 

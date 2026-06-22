@@ -20,7 +20,7 @@
         </div>
         <div class="flex flex-col flex-1 min-w-0">
           <div class="flex items-center gap-3 p-3 border-b border-gray-700">
-            <span class="text-sm font-medium text-gray-200">演员 #{{ group.actor_id }}</span>
+            <span class="text-sm font-medium text-gray-200">{{ group.name || `演员 #${group.actor_id}` }}</span>
             <span class="text-xs text-gray-500 ml-2">{{ group.items.length }} 部视频</span>
             <div class="ml-auto flex items-center gap-2">
               <span class="text-xs text-gray-400">相似度：</span>
@@ -86,6 +86,7 @@ const actorGroups = computed<SearchResultGroup[]>(() => {
     items.sort((a, b) => b.similarity - a.similarity)
     groups.push({
       actor_id: actorId,
+      name: items[0].name || null,
       items,
       best_match: items[0]
     })
