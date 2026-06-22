@@ -73,139 +73,153 @@
 
       <template v-else>
         <div class="text-sm text-gray-400 shrink-0">
-          共 <span class="text-gray-200 font-medium">{{ filteredActorGroups.length }}</span> 位演员，<span class="text-gray-200 font-medium">{{ totalVideos }}</span> 部视频
+          共 <span class="text-gray-200 font-medium">{{ filteredActorGroups.length }}</span> 位演员，<span
+          class="text-gray-200 font-medium">{{ totalVideos }}</span> 部视频
         </div>
 
         <div class="flex-1 min-h-0 overflow-y-auto flex flex-col gap-4">
           <div
             v-for="group in filteredActorGroups"
             :key="group.actor_id"
-          class="bg-gray-800 rounded-lg border border-gray-700 overflow-hidden flex shrink-0"
-        >
-          <div class="shrink-0">
-            <img
-              v-if="group.image_blob"
-              :src="`data:image/jpeg;base64,${group.image_blob}`"
-              class="h-60 cursor-pointer border-r border-gray-700 object-contain"
-              @click="previewImage(`data:image/jpeg;base64,${group.image_blob}`, group.facial_area_x, group.facial_area_y, group.facial_area_w, group.facial_area_h)"
-            />
-            <div v-else class="h-60 w-40 bg-gray-700 flex items-center justify-center text-xs text-gray-400">?</div>
-          </div>
-          <div class="flex flex-col flex-1 min-w-0">
-            <div class="flex items-center gap-3 p-3 border-b border-gray-700">
-              <input
-                v-if="mergeMode"
-                type="checkbox"
-                :checked="selectedActorIds.has(group.actor_id)"
-                @click.stop="toggleSelectActor(group.actor_id)"
-                class="shrink-0 w-4 h-4 accent-blue-500"
+            class="bg-gray-800 rounded-lg border border-gray-700 overflow-hidden flex shrink-0"
+          >
+            <div class="shrink-0">
+              <img
+                v-if="group.image_blob" alt="actor" :src="`data:image/jpeg;base64,${group.image_blob}`"
+                class="h-60 cursor-pointer border-r border-gray-700 object-contain"
+                @click="previewImage(`data:image/jpeg;base64,${group.image_blob}`, group.facial_area_x, group.facial_area_y, group.facial_area_w, group.facial_area_h)"
               />
-              <template v-if="editingActorId === group.actor_id">
+              <div v-else class="h-60 w-40 bg-gray-700 flex items-center justify-center text-xs text-gray-400">?</div>
+            </div>
+            <div class="flex flex-col flex-1 min-w-0">
+              <div class="flex items-center gap-3 p-3 border-b border-gray-700">
                 <input
-                  ref="renameInputRef"
-                  v-model="renameText"
-                  @keydown.enter="confirmRename(group.actor_id)"
-                  @keydown.esc="cancelRename"
-                  @blur="confirmRename(group.actor_id)"
-                  class="flex-1 min-w-0 px-2 py-0.5 bg-gray-700 border border-gray-500 rounded text-sm text-gray-200 outline-none"
-                  autofocus
+                  v-if="mergeMode"
+                  type="checkbox"
+                  :checked="selectedActorIds.has(group.actor_id)"
+                  @click.stop="toggleSelectActor(group.actor_id)"
+                  class="shrink-0 w-4 h-4 accent-blue-500"
                 />
-                <button @click="confirmRename(group.actor_id)" class="px-2 py-0.5 bg-green-600 hover:bg-green-500 rounded text-xs transition-colors shrink-0">保存</button>
-                <button @click="cancelRename" class="px-2 py-0.5 bg-gray-600 hover:bg-gray-500 rounded text-xs transition-colors shrink-0">取消</button>
-              </template>
-              <template v-else>
-                <span class="text-sm font-medium text-gray-200 truncate mr-1">
+                <template v-if="editingActorId === group.actor_id">
+                  <input
+                    ref="renameInputRef"
+                    v-model="renameText"
+                    @keydown.enter="confirmRename(group.actor_id)"
+                    @keydown.esc="cancelRename"
+                    @blur="confirmRename(group.actor_id)"
+                    class="flex-1 min-w-0 px-2 py-0.5 bg-gray-700 border border-gray-500 rounded text-sm text-gray-200 outline-none"
+                    autofocus
+                  />
+                  <button @click="confirmRename(group.actor_id)"
+                          class="px-2 py-0.5 bg-green-600 hover:bg-green-500 rounded text-xs transition-colors shrink-0">
+                    保存
+                  </button>
+                  <button @click="cancelRename"
+                          class="px-2 py-0.5 bg-gray-600 hover:bg-gray-500 rounded text-xs transition-colors shrink-0">
+                    取消
+                  </button>
+                </template>
+                <template v-else>
+                <span class="text-sm font-medium text-orange-200 truncate mr-1">
                   {{ group.name || `演员 #${group.actor_id}` }}
-                  <button
-                                    @click="startRename(group)"
-                                    class="p-1 text-gray-400 hover:text-gray-200 rounded transition-colors shrink-0"
-                                    title="重命名"
-                                  >
-                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
+                  <button title="重命名" @click="startRename(group)"
+                          class="p-1 text-gray-400 hover:text-gray-200 rounded transition-colors shrink-0">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path
+                      stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
                   </button>
                 </span>
-              </template>
-              <button
-                @click="switchActorTab(group.actor_id, 'videos')"
-                :class="(activeActorTab[group.actor_id] || 'videos') === 'videos' ? 'bg-gray-700 text-gray-200' : 'bg-transparent text-gray-500 hover:text-gray-300'"
-                class="px-1.5 py-0.5 rounded text-xs transition-colors shrink-0"
-              >视频({{ group.records.length }})</button>
-              <button
-                v-if="(actorFacesMap[group.actor_id] || []).length > 1"
-                @click="switchActorTab(group.actor_id, 'faces')"
-                :class="activeActorTab[group.actor_id] === 'faces' ? 'bg-gray-700 text-gray-200' : 'bg-transparent text-gray-500 hover:text-gray-300'"
-                class="px-1.5 py-0.5 rounded text-xs transition-colors shrink-0"
-              >人脸({{ (actorFacesMap[group.actor_id] || []).length }})</button>
-            </div>
-            <div class="flex-1 overflow-y-auto">
-              <div v-if="(activeActorTab[group.actor_id] || 'videos') !== 'faces'">
-                <div
-                  v-for="record in group.records"
-                  :key="record.id"
-                  class="flex items-center gap-3 px-3 py-2.5 hover:bg-gray-700/30 border-b border-gray-700/50 last:border-none"
-                >
-                  <div class="flex-1 min-w-0 flex items-center gap-2">
-                    <span class="text-xs text-gray-400 shrink-0">视频：</span>
-                    <button @click="openVideo(record.video_path)" class="text-xs text-blue-400 hover:text-blue-300 truncate min-w-0 text-left">
-                      {{ record.video_path || '-' }}
+                </template>
+                <button
+                  @click="switchActorTab(group.actor_id, 'videos')"
+                  :class="(activeActorTab[group.actor_id] || 'videos') === 'videos' ? 'bg-gray-700 text-gray-200' : 'bg-transparent text-gray-500 hover:text-gray-300'"
+                  class="px-1.5 py-0.5 rounded text-xs transition-colors shrink-0"
+                >视频({{ group.records.length }})
+                </button>
+                <button
+                  v-if="(actorFacesMap[group.actor_id] || []).length > 1"
+                  @click="switchActorTab(group.actor_id, 'faces')"
+                  :class="activeActorTab[group.actor_id] === 'faces' ? 'bg-gray-700 text-gray-200' : 'bg-transparent text-gray-500 hover:text-gray-300'"
+                  class="px-1.5 py-0.5 rounded text-xs transition-colors shrink-0"
+                >人脸({{ (actorFacesMap[group.actor_id] || []).length }})
+                </button>
+              </div>
+              <div class="flex-1 overflow-y-auto">
+                <div v-if="(activeActorTab[group.actor_id] || 'videos') !== 'faces'">
+                  <div
+                    v-for="record in group.records"
+                    :key="record.id"
+                    class="flex items-center gap-3 px-3 py-2.5 hover:bg-gray-700/30 border-b border-gray-700/50 last:border-none"
+                  >
+                    <div class="flex-1 min-w-0 flex items-center gap-2">
+                      <span class="text-xs text-gray-400 shrink-0">视频：</span>
+                      <button @click="openVideo(record.video_path)"
+                              class="text-xs text-blue-400 hover:text-blue-300 truncate min-w-0 text-left">
+                        {{ record.video_path || '-' }}
+                      </button>
+                    </div>
+                    <button
+                      @click="deleteRecord(group.actor_id, record.id)"
+                      class="px-2 py-1 bg-red-600 hover:bg-red-700 rounded text-xs transition-colors shrink-0"
+                    >
+                      删除
                     </button>
                   </div>
-                  <button
-                    @click="deleteRecord(group.actor_id, record.id)"
-                    class="px-2 py-1 bg-red-600 hover:bg-red-700 rounded text-xs transition-colors shrink-0"
-                  >
-                    删除
-                  </button>
                 </div>
-              </div>
-              <div v-if="activeActorTab[group.actor_id] === 'faces'">
-                <div
-                  v-for="face in (actorFacesMap[group.actor_id] || [])"
-                  :key="face.id"
-                  class="flex items-center gap-3 px-3 py-2 hover:bg-gray-700/30 border-b border-gray-700/50 last:border-none"
-                >
-                  <img
-                    v-if="face.image_blob"
-                    :src="`data:image/jpeg;base64,${face.image_blob}`"
-                    class="w-10 h-10 object-cover rounded shrink-0 cursor-pointer border border-gray-600"
-                    @click.stop="previewImage(`data:image/jpeg;base64,${face.image_blob}`, face.facial_area_x, face.facial_area_y, face.facial_area_w, face.facial_area_h)"
-                  />
-                  <div v-else class="w-10 h-10 rounded shrink-0 bg-gray-700 flex items-center justify-center text-xs text-gray-400">?</div>
-                  <div class="flex-1 min-w-0">
-                    <span class="text-xs text-gray-400">人脸 #{{ face.id }}</span>
-                    <span v-if="face.face_confidence" class="text-xs text-gray-500 ml-2">{{ (face.face_confidence * 100).toFixed(1) }}%</span>
-                  </div>
-                  <button
-                    v-if="(actorFacesMap[group.actor_id] || []).length > 1"
-                    @click="deleteFace(group.actor_id, face)"
-                    class="px-2 py-1 bg-red-600 hover:bg-red-700 rounded text-xs transition-colors shrink-0"
+                <div v-if="activeActorTab[group.actor_id] === 'faces'">
+                  <div
+                    v-for="face in (actorFacesMap[group.actor_id] || [])"
+                    :key="face.id"
+                    class="flex items-center gap-3 px-3 py-2 hover:bg-gray-700/30 border-b border-gray-700/50 last:border-none"
                   >
-                    删除
-                  </button>
+                    <img
+                      v-if="face.image_blob"
+                      :src="`data:image/jpeg;base64,${face.image_blob}`"
+                      class="w-10 h-10 object-cover rounded shrink-0 cursor-pointer border border-gray-600"
+                      @click.stop="previewImage(`data:image/jpeg;base64,${face.image_blob}`, face.facial_area_x, face.facial_area_y, face.facial_area_w, face.facial_area_h)"
+                    />
+                    <div v-else
+                         class="w-10 h-10 rounded shrink-0 bg-gray-700 flex items-center justify-center text-xs text-gray-400">
+                      ?
+                    </div>
+                    <div class="flex-1 min-w-0">
+                      <span class="text-xs text-gray-400">人脸 #{{ face.id }}</span>
+                      <span v-if="face.face_confidence"
+                            class="text-xs text-gray-500 ml-2">{{ (face.face_confidence * 100).toFixed(1) }}%</span>
+                    </div>
+                    <button
+                      v-if="(actorFacesMap[group.actor_id] || []).length > 1"
+                      @click="deleteFace(group.actor_id, face)"
+                      class="px-2 py-1 bg-red-600 hover:bg-red-700 rounded text-xs transition-colors shrink-0"
+                    >
+                      删除
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
       </template>
 
     </div>
 
     <div v-if="message" class="fixed bottom-4 right-4 px-4 py-2 rounded-lg shadow-lg text-sm"
-      :class="messageType === 'success' ? 'bg-green-600' : 'bg-red-600'"
-    >
+         :class="messageType === 'success' ? 'bg-green-600' : 'bg-red-600'">
       {{ message }}
     </div>
 
-    <div v-if="previewData" class="fixed inset-0 z-50 flex items-center justify-center bg-black/80" @click.self="previewData = null">
+    <div v-if="previewData" class="fixed inset-0 z-50 flex items-center justify-center bg-black/80"
+         @click.self="previewData = null">
       <div class="relative inline-flex overflow-hidden rounded-lg">
-        <img ref="previewDisplayImage" :src="previewData.src" class="max-w-[90vw] max-h-[90vh] object-contain" @load="drawPreviewFaces" />
-        <canvas ref="previewFaceCanvas" class="absolute inset-0 w-full h-full pointer-events-none" />
+        <img ref="previewDisplayImage" :src="previewData.src" class="max-w-[90vw] max-h-[90vh] object-contain"
+             @load="drawPreviewFaces"/>
+        <canvas ref="previewFaceCanvas" class="absolute inset-0 w-full h-full pointer-events-none"/>
       </div>
     </div>
 
-    <div v-if="showDeleteDialog" class="fixed inset-0 z-50 flex items-center justify-center bg-black/60" @click.self="showDeleteDialog = false">
+    <div v-if="showDeleteDialog" class="fixed inset-0 z-50 flex items-center justify-center bg-black/60"
+         @click.self="showDeleteDialog = false">
       <div class="bg-gray-800 rounded-lg shadow-xl w-[480px] flex flex-col">
         <div class="px-5 py-4 border-b border-gray-700">
           <h3 class="text-base font-medium text-gray-200">确认删除</h3>
@@ -215,13 +229,18 @@
           <p class="text-sm text-gray-400 mt-2 truncate">{{ pendingDelete?.record?.video_path }}</p>
         </div>
         <div class="px-5 py-3 border-t border-gray-700 flex items-center justify-end gap-2">
-          <button @click="showDeleteDialog = false" class="px-3 py-1.5 bg-gray-600 hover:bg-gray-500 rounded text-sm transition-colors">取消</button>
-          <button @click="confirmDeleteRecord" class="px-3 py-1.5 bg-red-600 hover:bg-red-500 rounded text-sm transition-colors">确认删除</button>
+          <button @click="showDeleteDialog = false"
+                  class="px-3 py-1.5 bg-gray-600 hover:bg-gray-500 rounded text-sm transition-colors">取消
+          </button>
+          <button @click="confirmDeleteRecord"
+                  class="px-3 py-1.5 bg-red-600 hover:bg-red-500 rounded text-sm transition-colors">确认删除
+          </button>
         </div>
       </div>
     </div>
 
-    <div v-if="showFaceDeleteDialog" class="fixed inset-0 z-50 flex items-center justify-center bg-black/60" @click.self="showFaceDeleteDialog = false">
+    <div v-if="showFaceDeleteDialog" class="fixed inset-0 z-50 flex items-center justify-center bg-black/60"
+         @click.self="showFaceDeleteDialog = false">
       <div class="bg-gray-800 rounded-lg shadow-xl w-[480px] flex flex-col">
         <div class="px-5 py-4 border-b border-gray-700">
           <h3 class="text-base font-medium text-gray-200">确认删除人脸</h3>
@@ -230,13 +249,18 @@
           <p class="text-sm text-gray-300">确定要删除此人脸记录吗？此操作不可撤销。</p>
         </div>
         <div class="px-5 py-3 border-t border-gray-700 flex items-center justify-end gap-2">
-          <button @click="showFaceDeleteDialog = false" class="px-3 py-1.5 bg-gray-600 hover:bg-gray-500 rounded text-sm transition-colors">取消</button>
-          <button @click="confirmDeleteFace" class="px-3 py-1.5 bg-red-600 hover:bg-red-500 rounded text-sm transition-colors">确认删除</button>
+          <button @click="showFaceDeleteDialog = false"
+                  class="px-3 py-1.5 bg-gray-600 hover:bg-gray-500 rounded text-sm transition-colors">取消
+          </button>
+          <button @click="confirmDeleteFace"
+                  class="px-3 py-1.5 bg-red-600 hover:bg-red-500 rounded text-sm transition-colors">确认删除
+          </button>
         </div>
       </div>
     </div>
 
-    <div v-if="showCleanupDialog" class="fixed inset-0 z-50 flex items-center justify-center bg-black/60" @click.self="showCleanupDialog = false">
+    <div v-if="showCleanupDialog" class="fixed inset-0 z-50 flex items-center justify-center bg-black/60"
+         @click.self="showCleanupDialog = false">
       <div class="bg-gray-800 rounded-lg shadow-xl w-[520px] max-h-[80vh] flex flex-col">
         <div class="px-5 py-4 border-b border-gray-700 shrink-0">
           <h3 class="text-base font-medium text-gray-200">无效视频清理</h3>
@@ -245,7 +269,7 @@
           </p>
         </div>
         <div class="flex-1 overflow-y-auto px-5 py-3 min-h-0">
-             <div v-for="r in invalidRecords" :key="r.video_id" class="py-2 border-b border-gray-700/50 last:border-none">
+          <div v-for="r in invalidRecords" :key="r.video_id" class="py-2 border-b border-gray-700/50 last:border-none">
             <div class="text-sm text-gray-300 truncate" :title="r.video_path">{{ r.video_path }}</div>
             <div class="text-xs text-gray-500 mt-0.5">视频 ID: {{ r.video_id }}</div>
           </div>
@@ -268,7 +292,8 @@
       </div>
     </div>
 
-    <div v-if="showMergeDialog" class="fixed inset-0 z-50 flex items-center justify-center bg-black/60" @click.self="showMergeDialog = false">
+    <div v-if="showMergeDialog" class="fixed inset-0 z-50 flex items-center justify-center bg-black/60"
+         @click.self="showMergeDialog = false">
       <div class="bg-gray-800 rounded-lg shadow-xl w-[480px] flex flex-col">
         <div class="px-5 py-4 border-b border-gray-700">
           <h3 class="text-base font-medium text-gray-200">合并演员</h3>
@@ -282,19 +307,25 @@
             class="flex items-center gap-3 py-2.5 px-2 rounded cursor-pointer transition-colors"
             :class="mergeTargetId === id ? 'bg-blue-600/30' : 'hover:bg-gray-700/50'"
           >
-            <input type="radio" :value="id" v-model="mergeTargetId" class="accent-blue-500 shrink-0" />
+            <input type="radio" :value="id" v-model="mergeTargetId" class="accent-blue-500 shrink-0"/>
             <img
               v-if="getActorGroup(id)?.image_blob"
               :src="`data:image/jpeg;base64,${getActorGroup(id)!.image_blob}`"
               class="w-14 h-14 object-cover rounded shrink-0 border border-gray-600"
             />
-            <div v-else class="w-14 h-14 rounded shrink-0 bg-gray-700 flex items-center justify-center text-xs text-gray-400">?</div>
+            <div v-else
+                 class="w-14 h-14 rounded shrink-0 bg-gray-700 flex items-center justify-center text-xs text-gray-400">?
+            </div>
             <span class="text-sm text-gray-200">{{ getActorName(id) }}</span>
           </div>
         </div>
         <div class="px-5 py-3 border-t border-gray-700 flex items-center justify-end gap-2">
-          <button @click="showMergeDialog = false" class="px-3 py-1.5 bg-gray-600 hover:bg-gray-500 rounded text-sm transition-colors">取消</button>
-          <button @click="confirmMerge" class="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 rounded text-sm transition-colors" :disabled="merging">
+          <button @click="showMergeDialog = false"
+                  class="px-3 py-1.5 bg-gray-600 hover:bg-gray-500 rounded text-sm transition-colors">取消
+          </button>
+          <button @click="confirmMerge"
+                  class="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 rounded text-sm transition-colors"
+                  :disabled="merging">
             {{ merging ? '合并中...' : '确认合并' }}
           </button>
         </div>
@@ -304,9 +335,12 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, nextTick } from 'vue'
-import { getAllActorsWithRecords, deleteVideo, deleteOrphanActors, fileExists, openPath, mergeActors, getActorFaces, deleteActorFace, renameActor } from '../lib/api'
-import type { ActorGroup, ActorRecord, ActorFace } from '../lib/types'
+import {ref, computed, onMounted, nextTick} from 'vue'
+import {
+  getAllActorsWithRecords, deleteVideo, deleteOrphanActors, fileExists, openPath, mergeActors, getActorFaces,
+  deleteActorFace, renameActor
+} from '../lib/api'
+import type {ActorGroup, ActorRecord, ActorFace} from '../lib/types'
 
 const actorGroups = ref<ActorGroup[]>([])
 const loading = ref(false)
@@ -314,12 +348,12 @@ const error = ref('')
 const message = ref('')
 const messageType = ref<'success' | 'error'>('success')
 const showCleanupDialog = ref(false)
-const invalidRecords = ref<{ video_id: number; video_path: string }[]>([])
+const invalidRecords = ref<{video_id: number; video_path: string}[]>([])
 const cleaning = ref(false)
 const showDeleteDialog = ref(false)
-const pendingDelete = ref<{ actorId: number; record: ActorRecord } | null>(null)
+const pendingDelete = ref<{actorId: number; record: ActorRecord} | null>(null)
 
-const previewData = ref<{ src: string; facialArea: { x: number; y: number; w: number; h: number } | null } | null>(null)
+const previewData = ref<{src: string; facialArea: {x: number; y: number; w: number; h: number} | null} | null>(null)
 const previewFaceCanvas = ref<HTMLCanvasElement | null>(null)
 const previewDisplayImage = ref<HTMLImageElement | null>(null)
 const searchQuery = ref('')
@@ -331,7 +365,7 @@ const merging = ref(false)
 const actorFacesMap = ref<Record<number, ActorFace[]>>({})
 const activeActorTab = ref<Record<number, 'videos' | 'faces'>>({})
 const showFaceDeleteDialog = ref(false)
-const pendingFaceDelete = ref<{ actorId: number; face: ActorFace } | null>(null)
+const pendingFaceDelete = ref<{actorId: number; face: ActorFace} | null>(null)
 
 const editingActorId = ref<number | null>(null)
 const renameText = ref('')
@@ -370,7 +404,9 @@ async function loadRecords() {
     actorGroups.value = data
     const faceResults = await Promise.all(data.map(g => getActorFaces(g.actor_id)))
     const map: Record<number, ActorFace[]> = {}
-    data.forEach((g, i) => { map[g.actor_id] = faceResults[i] })
+    data.forEach((g, i) => {
+      map[g.actor_id] = faceResults[i]
+    })
     actorFacesMap.value = map
   } catch (e: any) {
     error.value = '加载失败: ' + e.message
@@ -383,7 +419,7 @@ async function deleteRecord(actorId: number, recordId: number) {
   const group = actorGroups.value.find(g => g.actor_id === actorId)
   const record = group?.records.find(r => r.id === recordId)
   if (!record) return
-  pendingDelete.value = { actorId, record }
+  pendingDelete.value = {actorId, record}
   showDeleteDialog.value = true
 }
 
@@ -425,17 +461,17 @@ function switchActorTab(actorId: number, tab: 'videos' | 'faces') {
 }
 
 async function deleteFace(actorId: number, face: ActorFace) {
-  pendingFaceDelete.value = { actorId, face }
+  pendingFaceDelete.value = {actorId, face}
   showFaceDeleteDialog.value = true
 }
 
 async function confirmDeleteFace() {
   if (!pendingFaceDelete.value) return
-  const { actorId, face } = pendingFaceDelete.value
+  const {actorId, face} = pendingFaceDelete.value
   try {
     await deleteActorFace(face.id)
     const faces = (actorFacesMap.value[actorId] || []).filter(f => f.id !== face.id)
-    actorFacesMap.value = { ...actorFacesMap.value, [actorId]: faces }
+    actorFacesMap.value = {...actorFacesMap.value, [actorId]: faces}
     showFaceDeleteDialog.value = false
     pendingFaceDelete.value = null
     showMessage('删除成功', 'success')
@@ -483,13 +519,13 @@ async function checkInvalidRecords() {
   try {
     const groups = await getAllActorsWithRecords()
     const seen = new Set<number>()
-    const invalid: { video_id: number; video_path: string }[] = []
+    const invalid: {video_id: number; video_path: string}[] = []
     for (const g of groups) {
       for (const r of g.records) {
         if (!r.video_path || seen.has(r.video_id)) continue
         seen.add(r.video_id)
         const exists = await fileExists(r.video_path)
-        if (!exists) invalid.push({ video_id: r.video_id, video_path: r.video_path })
+        if (!exists) invalid.push({video_id: r.video_id, video_path: r.video_path})
       }
     }
     if (invalid.length === 0) {
@@ -528,14 +564,16 @@ async function confirmCleanup() {
 function showMessage(msg: string, type: 'success' | 'error') {
   message.value = msg
   messageType.value = type
-  setTimeout(() => { message.value = '' }, 3000)
+  setTimeout(() => {
+    message.value = ''
+  }, 3000)
 }
 
 function previewImage(src: string, facialAreaX: number | null, facialAreaY: number | null, facialAreaW: number | null, facialAreaH: number | null) {
   previewData.value = {
     src,
     facialArea: facialAreaX !== null && facialAreaY !== null && facialAreaW !== null && facialAreaH !== null
-      ? { x: facialAreaX, y: facialAreaY, w: facialAreaW, h: facialAreaH }
+      ? {x: facialAreaX, y: facialAreaY, w: facialAreaW, h: facialAreaH}
       : null
   }
   nextTick(() => drawPreviewFaces())
