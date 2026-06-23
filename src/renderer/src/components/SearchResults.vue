@@ -31,7 +31,7 @@
             </div>
             <div class="flex flex-col flex-1 min-w-0">
               <div class="flex items-center gap-3 p-3 border-b border-gray-700">
-                <span class="text-sm font-medium text-gray-200">{{ actorGroup.name || `演员 #${actorGroup.actor_id}` }}</span>
+                <span class="text-sm font-medium text-orange-200">{{ actorGroup.name || `演员 #${actorGroup.actor_id}` }}</span>
                 <span class="text-xs text-gray-500 ml-2">{{ actorGroup.items.length }} 部视频</span>
                 <div class="ml-auto flex items-center gap-2">
                   <span class="text-xs text-gray-400">相似度：</span>
