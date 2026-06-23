@@ -13,7 +13,6 @@
       <div v-for="group in faceGroups" :key="group.faceIndex">
         <div class="flex items-center gap-2 mb-3 sticky top-0 bg-gray-900 py-2 z-10">
           <span class="text-sm font-bold text-green-400">{{ group.faceLabel }}</span>
-          <span class="text-xs text-gray-500">{{ group.results.length }} 个匹配</span>
         </div>
 
         <div v-if="!group.results.length" class="text-gray-500 text-sm text-center py-4">
