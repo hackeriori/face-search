@@ -18,7 +18,7 @@
       <div class="text-gray-400">正在搜索相似人脸...</div>
     </div>
 
-    <SearchResults v-else-if="results.length" :results="results"/>
+    <SearchResults v-else-if="faceGroups.length" :faceGroups="faceGroups"/>
     <div v-else-if="searched" class="flex items-center justify-center py-12">
       <div class="text-gray-500">未找到匹配的人脸</div>
     </div>
@@ -48,9 +48,8 @@ import {ref, onMounted, onUnmounted, nextTick} from 'vue'
 import ImageInput from '../components/ImageInput.vue'
 import SearchResults from '../components/SearchResults.vue'
 import {representImage, searchFaces, readClipboardImage} from '../lib/api'
-import type {SearchResult, FaceArea} from '../lib/types'
+import type {DetectedFace, FaceSearchResultGroup} from '../lib/types'
 
-const results = ref<SearchResult[]>([])
 const searching = ref(false)
 const searched = ref(false)
 const pasting = ref(false)
@@ -58,7 +57,8 @@ const message = ref('')
 const messageType = ref<'success' | 'error'>('success')
 const selectedImage = ref('')
 const previewSrc = ref<string | null>('')
-const detectedFaceArea = ref<FaceArea | null>(null)
+const detectedFaces = ref<DetectedFace[]>([])
+const faceGroups = ref<FaceSearchResultGroup[]>([])
 const previewDisplayImage = ref<HTMLImageElement | null>(null)
 const previewFaceCanvas = ref<HTMLCanvasElement | null>(null)
 
@@ -85,7 +85,8 @@ async function onImageSelected(data: {dataUrl: string; buffer: ArrayBuffer}) {
   selectedImage.value = data.dataUrl
   searching.value = true
   searched.value = false
-  results.value = []
+  faceGroups.value = []
+  detectedFaces.value = []
   try {
     const detectResult = await representImage(data.dataUrl)
     if (!detectResult.result.length) {
@@ -95,16 +96,30 @@ async function onImageSelected(data: {dataUrl: string; buffer: ArrayBuffer}) {
       return
     }
 
-    const face = detectResult.result[0]
-    detectedFaceArea.value = face.facial_area
-    const searchResults = await searchFaces(face.embedding)
-    results.value = searchResults
+    detectedFaces.value = detectResult.result.map((f: DetectedFace) => ({...f}))
+
+    const groups: FaceSearchResultGroup[] = []
+    let totalResults = 0
+    for (let i = 0; i < detectedFaces.value.length; i++) {
+      const face = detectedFaces.value[i]
+      const searchResults = await searchFaces([...face.embedding])
+      if (!searchResults.length) continue
+      groups.push({
+        faceIndex: i,
+        faceLabel: `人脸${i + 1}`,
+        facial_area: face.facial_area,
+        results: searchResults
+      })
+      totalResults += searchResults.length
+    }
+
+    faceGroups.value = groups
     searched.value = true
 
-    if (!searchResults.length) {
+    if (!totalResults) {
       showMessage('未找到匹配结果', 'error')
     } else {
-      showMessage(`找到 ${searchResults.length} 个匹配结果`, 'success')
+      showMessage(`找到 ${totalResults} 个匹配结果`, 'success')
     }
   } catch (e: any) {
     showMessage('搜索失败: ' + e.message, 'error')
@@ -118,10 +133,7 @@ async function onImageSelected(data: {dataUrl: string; buffer: ArrayBuffer}) {
 function drawPreviewFaces() {
   const canvas = previewFaceCanvas.value
   const img = previewDisplayImage.value
-  if (!canvas || !img || !detectedFaceArea.value) return
-
-  const fa = detectedFaceArea.value
-  if (!fa.w || !fa.h) return
+  if (!canvas || !img || !detectedFaces.value.length) return
 
   const rect = canvas.getBoundingClientRect()
   canvas.width = rect.width
@@ -138,14 +150,26 @@ function drawPreviewFaces() {
   const faceScaleX = renderedW / img.naturalWidth
   const faceScaleY = renderedH / img.naturalHeight
 
-  const x = offsetX + fa.x * faceScaleX
-  const y = offsetY + fa.y * faceScaleY
-  const w = fa.w * faceScaleX
-  const h = fa.h * faceScaleY
+  const faceIndicesWithResults = new Set(faceGroups.value.map(g => g.faceIndex))
 
-  ctx.strokeStyle = '#22c55e'
-  ctx.lineWidth = 3
-  ctx.strokeRect(x, y, w, h)
+  for (let i = 0; i < detectedFaces.value.length; i++) {
+    const hasResults = faceIndicesWithResults.has(i)
+    const isSearched = searched.value && hasResults
+
+    const fa = detectedFaces.value[i].facial_area
+    const x = offsetX + fa.x * faceScaleX
+    const y = offsetY + fa.y * faceScaleY
+    const w = fa.w * faceScaleX
+    const h = fa.h * faceScaleY
+
+    ctx.strokeStyle = isSearched ? '#22c55e' : '#ef4444'
+    ctx.lineWidth = 3
+    ctx.strokeRect(x, y, w, h)
+
+    ctx.fillStyle = isSearched ? '#22c55e' : '#ef4444'
+    ctx.font = 'bold 13px sans-serif'
+    ctx.fillText(`人脸${i + 1}`, x + 4, y - 6 > 16 ? y - 6 : y + 16)
+  }
 }
 
 function showMessage(msg: string, type: 'success' | 'error') {

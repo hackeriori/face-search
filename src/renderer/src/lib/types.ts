@@ -57,6 +57,13 @@ export interface SearchResultGroup {
   best_match: SearchResult
 }
 
+export interface FaceSearchResultGroup {
+  faceIndex: number
+  faceLabel: string
+  facial_area: FaceArea
+  results: SearchResult[]
+}
+
 export interface ActorRecord {
   id: number
   video_id: number
