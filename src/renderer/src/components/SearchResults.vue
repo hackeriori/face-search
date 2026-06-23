@@ -21,15 +21,15 @@
         </div>
 
         <div v-else class="space-y-3">
-          <div v-for="actorGroup in getActorGroups(group.results)" :key="actorGroup.actor_id" class="bg-gray-800 rounded-lg border border-gray-700 overflow-hidden flex">
+          <div v-for="actorGroup in getActorGroups(group.results)" :key="actorGroup.actor_id" class="h-60 bg-gray-800 rounded-lg border border-gray-700 overflow-hidden flex">
             <div class="shrink-0">
               <img
-                :src="`data:image/jpeg;base64,${actorGroup.best_match.image_blob}`"
+                :src="`data:image/jpeg;base64,${actorGroup.best_match.image_blob}`" alt="actor"
                 class="h-60 cursor-pointer border-r border-gray-700 object-contain"
                 @click="previewImage(`data:image/jpeg;base64,${actorGroup.best_match.image_blob}`, actorGroup.best_match)"
               />
             </div>
-            <div class="flex flex-col flex-1 min-w-0">
+            <div class="flex flex-col flex-1 min-w-0 overflow-auto">
               <div class="flex items-center gap-3 p-3 border-b border-gray-700">
                 <span class="text-sm font-medium text-orange-200">{{ actorGroup.name || `演员 #${actorGroup.actor_id}` }}</span>
                 <span class="text-xs text-gray-500 ml-2">{{ actorGroup.items.length }} 部视频</span>

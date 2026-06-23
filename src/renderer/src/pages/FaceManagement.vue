@@ -81,7 +81,7 @@
           <div
             v-for="group in filteredActorGroups"
             :key="group.actor_id"
-            class="bg-gray-800 rounded-lg border border-gray-700 overflow-hidden flex shrink-0"
+            class="h-60 bg-gray-800 rounded-lg border border-gray-700 overflow-hidden flex shrink-0"
           >
             <div class="shrink-0">
               <img
@@ -91,7 +91,7 @@
               />
               <div v-else class="h-60 w-40 bg-gray-700 flex items-center justify-center text-xs text-gray-400">?</div>
             </div>
-            <div class="flex flex-col flex-1 min-w-0">
+            <div class="flex flex-col flex-1 min-w-0 overflow-auto">
               <div class="flex items-center gap-3 p-3 border-b border-gray-700">
                 <input
                   v-if="mergeMode"
