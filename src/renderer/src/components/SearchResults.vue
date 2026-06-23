@@ -30,7 +30,7 @@
             </div>
             <div class="flex flex-col flex-1 min-w-0 overflow-auto">
               <div class="flex items-center gap-3 p-3 border-b border-gray-700">
-                <span class="text-sm font-medium text-orange-200">{{ actorGroup.name || `演员 #${actorGroup.actor_id}` }}</span>
+                <span class="text-sm font-medium text-orange-200 cursor-pointer hover:text-orange-100" @click="copyText(actorGroup.name || `演员 #${actorGroup.actor_id}`)">{{ actorGroup.name || `演员 #${actorGroup.actor_id}` }}</span>
                 <span class="text-xs text-gray-500 ml-2">{{ actorGroup.items.length }} 部视频</span>
                 <div class="ml-auto flex items-center gap-2">
                   <span class="text-xs text-gray-400">相似度：</span>
@@ -62,6 +62,10 @@
       </div>
     </div>
 
+    <div v-if="copiedText" class="fixed bottom-4 right-4 px-4 py-2 rounded-lg shadow-lg text-sm bg-green-600 z-50">
+      已复制: {{ copiedText }}
+    </div>
+
     <div v-if="previewData" class="fixed inset-0 z-50 flex items-center justify-center bg-black/80" @click.self="previewData = null">
       <div class="relative inline-flex overflow-hidden rounded-lg">
         <img ref="previewDisplayImage" :src="previewData.src" class="max-w-[90vw] max-h-[90vh] object-contain" @load="drawPreviewFaces" />
@@ -80,6 +84,7 @@ const props = defineProps<{
   faceGroups: FaceSearchResultGroup[]
 }>()
 
+const copiedText = ref('')
 const previewData = ref<{ src: string; facialArea: { x: number; y: number; w: number; h: number } } | null>(null)
 const previewFaceCanvas = ref<HTMLCanvasElement | null>(null)
 const previewDisplayImage = ref<HTMLImageElement | null>(null)
@@ -104,6 +109,12 @@ function getActorGroups(results: SearchResult[]): SearchResultGroup[] {
   }
   groups.sort((a, b) => b.best_match.similarity - a.best_match.similarity)
   return groups
+}
+
+function copyText(text: string) {
+  navigator.clipboard.writeText(text)
+  copiedText.value = text
+  setTimeout(() => { copiedText.value = '' }, 2000)
 }
 
 function getSimilarityClass(similarity: number): string {

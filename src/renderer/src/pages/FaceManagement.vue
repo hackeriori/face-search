@@ -120,9 +120,9 @@
                   </button>
                 </template>
                 <template v-else>
-                <span class="text-sm font-medium text-orange-200 truncate mr-1">
+                <span class="text-sm font-medium text-orange-200 truncate mr-1 cursor-pointer hover:text-orange-100" @click="copyActorName(group)">
                   {{ group.name || `演员 #${group.actor_id}` }}
-                  <button title="重命名" @click="startRename(group)"
+                  <button title="重命名" @click.stop="startRename(group)"
                           class="p-1 text-gray-400 hover:text-gray-200 rounded transition-colors shrink-0">
                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path
                       stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -204,7 +204,11 @@
 
     </div>
 
-    <div v-if="message" class="fixed bottom-4 right-4 px-4 py-2 rounded-lg shadow-lg text-sm"
+    <div v-if="copiedText" class="fixed bottom-4 right-4 px-4 py-2 rounded-lg shadow-lg text-sm bg-green-600 z-50">
+      已复制: {{ copiedText }}
+    </div>
+
+    <div v-if="message" class="fixed bottom-20 right-4 px-4 py-2 rounded-lg shadow-lg text-sm"
          :class="messageType === 'success' ? 'bg-green-600' : 'bg-red-600'">
       {{ message }}
     </div>
@@ -367,6 +371,7 @@ const activeActorTab = ref<Record<number, 'videos' | 'faces'>>({})
 const showFaceDeleteDialog = ref(false)
 const pendingFaceDelete = ref<{actorId: number; face: ActorFace} | null>(null)
 
+const copiedText = ref('')
 const editingActorId = ref<number | null>(null)
 const renameText = ref('')
 const renameInputRef = ref<HTMLInputElement | null>(null)
@@ -608,6 +613,13 @@ function drawPreviewFaces() {
   ctx.strokeStyle = '#22c55e'
   ctx.lineWidth = 3
   ctx.strokeRect(x, y, w, h)
+}
+
+function copyActorName(group: ActorGroup) {
+  const name = group.name || `演员 #${group.actor_id}`
+  navigator.clipboard.writeText(name)
+  copiedText.value = name
+  setTimeout(() => { copiedText.value = '' }, 2000)
 }
 
 function startRename(group: ActorGroup) {
