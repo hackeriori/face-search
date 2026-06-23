@@ -253,7 +253,7 @@ export function getAllActorsWithRecords(): any[] {
         af.facial_area_w,
         af.facial_area_h,
         af.face_confidence,
-        ROW_NUMBER() OVER (PARTITION BY af.actor_id ORDER BY af.face_confidence DESC) AS rn
+        ROW_NUMBER() OVER (PARTITION BY af.actor_id ORDER BY af.id ASC) AS rn
       FROM actor_faces af
     )
     SELECT
