@@ -154,11 +154,16 @@ export class FfmpegStreamPlayer {
   async captureFrame(): Promise<ArrayBuffer> {
     if (!this.filePath) throw new Error('No video loaded')
     this.updateTimePos()
+    return this.captureFrameAt(this.status.timePos)
+  }
+
+  async captureFrameAt(time: number): Promise<ArrayBuffer> {
+    if (!this.filePath) throw new Error('No video loaded')
     const outPath = path.join(os.tmpdir(), `ffmpeg-frame-${Date.now()}.jpg`)
     const args = [
       '-hide_banner',
       '-loglevel', 'error',
-      '-ss', String(Math.max(0, this.status.timePos)),
+      '-ss', String(Math.max(0, time)),
       '-i', this.filePath,
       '-frames:v', '1',
       '-q:v', '2',

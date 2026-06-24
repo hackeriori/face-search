@@ -88,6 +88,9 @@ const api = {
   playerCaptureFrame: (): Promise<{ buffer: ArrayBuffer; dataUrl: string }> =>
     ipcRenderer.invoke('player:captureFrame'),
 
+  playerCaptureFrameAt: (time: number): Promise<{ buffer: ArrayBuffer; dataUrl: string }> =>
+    ipcRenderer.invoke('player:captureFrameAt', time),
+
   playerGetStatus: (): Promise<{ state: string; duration: number; timePos: number; filename: string; streamUrl?: string } | null> =>
     ipcRenderer.invoke('player:getStatus'),
 

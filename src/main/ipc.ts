@@ -224,6 +224,16 @@ export function registerIpcHandlers(ipc: typeof ipcMain) {
     return { buffer: arrayBuffer, dataUrl }
   })
 
+  ipc.handle('player:captureFrameAt', async (_event, time: number) => {
+    if (!player) throw new Error('FFmpeg player not initialized')
+    const buffer = await player.captureFrameAt(time)
+    const blob = Buffer.from(buffer)
+    const dataUrl = `data:image/jpeg;base64,${blob.toString('base64')}`
+    const arrayBuffer = new ArrayBuffer(blob.length)
+    new Uint8Array(arrayBuffer).set(blob)
+    return { buffer: arrayBuffer, dataUrl }
+  })
+
   ipc.handle('player:getStatus', async () => {
     return player?.status || null
   })

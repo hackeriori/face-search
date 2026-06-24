@@ -42,16 +42,37 @@
       </div>
 
       <div class="bg-linear-to-t shrink-0 from-black/90 to-transparent p-2">
-        <input
-          type="range"
-          :min="0"
-          :max="status.duration || 0"
-          :step="0.1"
-          :value="status.timePos"
-          @input="onSeekInput"
-          @change="onSeekChange"
-          class="w-full h-1 accent-blue-500 cursor-pointer"
-        />
+        <div
+          ref="progressContainer"
+          class="relative w-full"
+          @mousemove="onProgressHover"
+          @mouseleave="onProgressLeave"
+        >
+          <input
+            type="range"
+            :min="0"
+            :max="status.duration || 0"
+            :step="0.1"
+            :value="status.timePos"
+            @input="onSeekInput"
+            @change="onSeekChange"
+            class="w-full h-1 accent-blue-500 cursor-pointer"
+          />
+          <div
+            v-if="showHoverThumbnail && hoverThumbnail"
+            class="absolute bottom-full mb-2 pointer-events-none"
+            :style="{ left: hoverLeftPx + 'px' }"
+          >
+            <img
+              :src="hoverThumbnail"
+              class="w-40 h-auto rounded border border-white/20 shadow-lg"
+              alt=""
+            />
+            <div class="text-center text-xs text-white mt-0.5 bg-black/60 rounded px-1">
+              {{ formatTime(hoverTime) }}
+            </div>
+          </div>
+        </div>
         <div class="flex items-center gap-2 text-xs text-white/70 mt-1">
           <button
             @click="togglePlay"
@@ -128,6 +149,12 @@ const videoArea = ref<HTMLDivElement | null>(null)
 const videoEl = ref<HTMLVideoElement | null>(null)
 const activeStreamUrl = ref('')
 const previewDataUrl = ref('')
+const progressContainer = ref<HTMLDivElement | null>(null)
+const hoverTime = ref(0)
+const hoverLeftPx = ref(0)
+const hoverThumbnail = ref('')
+const showHoverThumbnail = ref(false)
+let hoverThumbTimer: ReturnType<typeof setTimeout> | null = null
 const status = reactive<MpvStatusInfo>({
   state: 'idle',
   duration: 0,
@@ -272,6 +299,37 @@ async function frameStep() {
 async function frameBackStep() {
   await window.electronAPI.playerFrameBackStep()
   await updatePreviewFrame()
+}
+
+function onProgressHover(event: MouseEvent) {
+  const el = progressContainer.value
+  if (!el || !status.duration) return
+  const rect = el.getBoundingClientRect()
+  const mouseRatio = Math.max(0, Math.min(1, (event.clientX - rect.left) / rect.width))
+  const thumbWidth = 160
+  const mousePx = mouseRatio * rect.width
+  hoverLeftPx.value = Math.min(mousePx, rect.width - thumbWidth)
+  hoverTime.value = mouseRatio * status.duration
+  showHoverThumbnail.value = true
+
+  if (hoverThumbTimer) clearTimeout(hoverThumbTimer)
+  hoverThumbTimer = setTimeout(async () => {
+    try {
+      const result = await window.electronAPI.playerCaptureFrameAt(hoverTime.value)
+      hoverThumbnail.value = result.dataUrl
+    } catch {
+      // ignore
+    }
+  }, 200)
+}
+
+function onProgressLeave() {
+  if (hoverThumbTimer) {
+    clearTimeout(hoverThumbTimer)
+    hoverThumbTimer = null
+  }
+  showHoverThumbnail.value = false
+  hoverThumbnail.value = ''
 }
 
 async function captureCurrentFrame() {
