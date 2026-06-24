@@ -250,7 +250,7 @@ export class FfmpegStreamPlayer {
       '-ss', String(Math.max(0, this.startAt)),
       '-re',
       '-i', this.filePath,
-      '-an',
+      '-c:a', 'aac',
       '-c:v', 'h264_nvenc',
       '-preset', 'p1',
       '-tune', 'll',
