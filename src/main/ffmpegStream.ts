@@ -126,8 +126,12 @@ export class FfmpegStreamPlayer {
     this.status.timePos = nextTime
     this.sessionId++
     this.status.streamUrl = this.streamUrl
+    this.stopPolling()
     await this.closeStreamOnly()
     this.onStatusChange?.(this.status)
+    if (this.status.state === 'playing') {
+      this.startPolling()
+    }
   }
 
   async seekRelative(offset: number): Promise<void> {

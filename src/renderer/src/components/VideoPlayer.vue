@@ -134,6 +134,8 @@ const status = reactive<MpvStatusInfo>({
   timePos: 0,
   filename: '',
 })
+let seeking = false
+let pendingSeekTime = -1
 let resizeObserver: ResizeObserver | null = null
 let flvPlayer: flvjs.Player | null = null
 
@@ -141,7 +143,9 @@ onMounted(() => {
   window.electronAPI.playerOnStatus((s) => {
     status.state = s.state
     status.duration = s.duration
-    status.timePos = s.timePos
+    if (!seeking) {
+      status.timePos = s.timePos
+    }
     status.filename = s.filename
     status.streamUrl = s.streamUrl
     if (s.state === 'playing' && s.streamUrl) {
@@ -225,14 +229,21 @@ watch(() => props.videoPath, async (path) => {
 
 function onSeekInput(event: Event) {
   const target = event.target as HTMLInputElement
-  status.timePos = parseFloat(target.value)
+  pendingSeekTime = parseFloat(target.value)
+  status.timePos = pendingSeekTime
+  seeking = true
 }
 
-async function onSeekChange(event: Event) {
-  const target = event.target as HTMLInputElement
-  const time = parseFloat(target.value)
+async function onSeekChange() {
+  const time = pendingSeekTime
+  pendingSeekTime = -1
+  if (time < 0) return
   status.timePos = time
-  await window.electronAPI.playerSeek(time)
+  try {
+    await window.electronAPI.playerSeek(time)
+  } finally {
+    seeking = false
+  }
   if (status.state !== 'playing') {
     await updatePreviewFrame()
   }
