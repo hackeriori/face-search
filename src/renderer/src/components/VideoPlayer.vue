@@ -20,9 +20,10 @@
           class="absolute inset-0 w-full h-full object-contain bg-black"
           muted
           playsinline
+          @playing="onVideoPlaying"
         ></video>
         <img
-          v-if="previewDataUrl && status.state !== 'playing'"
+          v-if="previewDataUrl && (status.state !== 'playing' || resuming)"
           :src="previewDataUrl"
           class="absolute inset-0 w-full h-full object-contain bg-black"
           alt=""
@@ -154,6 +155,7 @@ const hoverTime = ref(0)
 const hoverLeftPx = ref(0)
 const hoverThumbnail = ref('')
 const showHoverThumbnail = ref(false)
+const resuming = ref(false)
 let hoverThumbTimer: ReturnType<typeof setTimeout> | null = null
 const status = reactive<MpvStatusInfo>({
   state: 'idle',
@@ -176,7 +178,9 @@ onMounted(() => {
     status.filename = s.filename
     status.streamUrl = s.streamUrl
     if (s.state === 'playing' && s.streamUrl) {
-      previewDataUrl.value = ''
+      if (!resuming.value) {
+        previewDataUrl.value = ''
+      }
       loadStream(s.streamUrl)
     }
   })
@@ -237,6 +241,7 @@ watch(() => props.videoPath, async (path) => {
   status.streamUrl = undefined
   activeStreamUrl.value = ''
   previewDataUrl.value = ''
+  resuming.value = false
   destroyStream()
 
   if (!path) return
@@ -278,9 +283,15 @@ async function onSeekChange() {
 
 async function togglePlay() {
   const wasPlaying = status.state === 'playing'
-  await window.electronAPI.playerTogglePause()
   if (wasPlaying) {
-    await updatePreviewFrame()
+    const frame = captureVideoFrame()
+    if (frame) {
+      previewDataUrl.value = frame
+    }
+    await window.electronAPI.playerTogglePause()
+  } else {
+    resuming.value = true
+    await window.electronAPI.playerTogglePause()
   }
 }
 
@@ -340,6 +351,23 @@ async function captureCurrentFrame() {
   } catch (e: any) {
     console.error('Frame capture failed:', e)
   }
+}
+
+function captureVideoFrame(): string {
+  const video = videoEl.value
+  if (!video || !video.videoWidth || !video.videoHeight) return ''
+  const canvas = document.createElement('canvas')
+  canvas.width = video.videoWidth
+  canvas.height = video.videoHeight
+  const ctx = canvas.getContext('2d')
+  if (!ctx) return ''
+  ctx.drawImage(video, 0, 0)
+  return canvas.toDataURL('image/jpeg', 0.9)
+}
+
+function onVideoPlaying() {
+  previewDataUrl.value = ''
+  resuming.value = false
 }
 
 function formatTime(s: number): string {
