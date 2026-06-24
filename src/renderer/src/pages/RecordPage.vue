@@ -14,6 +14,7 @@
               ref="videoPlayerRef"
               :videoPath="videoPath"
               @frame-captured="onFrameCaptured"
+              @file-dropped="onFileDropped"
             />
           </div>
           <div class="mt-2 flex gap-2">
@@ -21,7 +22,7 @@
                     class="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 rounded text-sm transition-colors">播放视频
             </button>
             <button @click="openVideo"
-                    class="px-3 py-1.5 bg-purple-600 hover:bg-purple-700 rounded text-sm transition-colors">打开视频
+                    class="px-3 py-1.5 bg-purple-600 hover:bg-purple-700 rounded text-sm transition-colors">{{ savedVideoPath ? '在外部播放器中打开' : '打开视频' }}
             </button>
             <button @click="captureFrame" :disabled="!videoPath"
                     class="px-3 py-1.5 bg-green-600 hover:bg-green-700 rounded text-sm disabled:opacity-40 transition-colors">
@@ -248,6 +249,10 @@ async function selectVideo() {
 }
 
 async function openVideo() {
+  if (savedVideoPath.value) {
+    await window.electronAPI.openPath(savedVideoPath.value)
+    return
+  }
   const result = await window.electronAPI.openFile({
     filters: [{name: 'Video Files', extensions: ['mp4', 'webm', 'ogg', 'wmv', 'mkv', 'avi', 'mov']}]
   })
@@ -255,6 +260,11 @@ async function openVideo() {
     savedVideoPath.value = result.filePaths[0]
     await window.electronAPI.openPath(result.filePaths[0])
   }
+}
+
+function onFileDropped(path: string) {
+  videoPath.value = path
+  savedVideoPath.value = path
 }
 
 function captureFrame() {

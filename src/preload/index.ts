@@ -1,4 +1,4 @@
-import { contextBridge, ipcRenderer } from 'electron'
+import { contextBridge, ipcRenderer, webUtils } from 'electron'
 
 const api = {
   checkApi: (): Promise<any> => ipcRenderer.invoke('api:check'),
@@ -62,6 +62,8 @@ const api = {
   fileExists: (filePath: string): Promise<boolean> => ipcRenderer.invoke('file:exists', filePath),
 
   openPath: (filePath: string): Promise<string> => ipcRenderer.invoke('shell:openPath', filePath),
+
+  getPathForFile: (file: File): string => webUtils.getPathForFile(file),
 
   // --- FFmpeg FLV Player API ---
   playerOpen: (filePath: string, bounds?: { x: number; y: number; w: number; h: number }): Promise<{ streamUrl: string; status: any }> =>

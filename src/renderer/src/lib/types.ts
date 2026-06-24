@@ -140,6 +140,7 @@ export interface ElectronAPI {
   readFileAsDataUrl: (filePath: string) => Promise<{ dataUrl: string; buffer: ArrayBuffer }>
   fileExists: (filePath: string) => Promise<boolean>
   openPath: (filePath: string) => Promise<string>
+  getPathForFile: (file: File) => string
   // --- FFmpeg FLV Player ---
   playerOpen: (filePath: string, bounds?: MpvBounds) => Promise<{ streamUrl: string; status: MpvStatusInfo }>
   playerClose: () => Promise<void>

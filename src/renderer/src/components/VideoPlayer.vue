@@ -1,5 +1,11 @@
 <template>
-  <div ref="containerEl" class="h-full bg-gray-900 rounded overflow-hidden relative flex flex-col">
+  <div
+    ref="containerEl"
+    class="h-full bg-gray-900 rounded overflow-hidden relative flex flex-col"
+    @dragenter.prevent
+    @dragover.prevent
+    @drop.prevent="onDrop"
+  >
     <div v-if="!videoPath" class="flex items-center justify-center flex-1 text-gray-500 text-sm">
       尚未选择视频文件
     </div>
@@ -114,6 +120,7 @@ import type { MpvStatusInfo, MpvBounds } from '../lib/types'
 const props = defineProps<{ videoPath: string }>()
 const emit = defineEmits<{
   'frame-captured': [data: { dataUrl: string; buffer: ArrayBuffer }]
+  'file-dropped': [path: string]
 }>()
 
 const containerEl = ref<HTMLDivElement | null>(null)
@@ -161,6 +168,21 @@ onUnmounted(() => {
   destroyStream()
   window.electronAPI.playerClose()
 })
+
+function onDrop(event: DragEvent) {
+  const files = event.dataTransfer?.files
+  if (files && files.length > 0) {
+    const file = files[0]
+    try {
+      const path = window.electronAPI.getPathForFile(file)
+      if (path) {
+        emit('file-dropped', path)
+      }
+    } catch {
+      // ignore
+    }
+  }
+}
 
 function getVideoBounds(): MpvBounds {
   const el = videoArea.value ?? containerEl.value
