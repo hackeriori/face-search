@@ -63,44 +63,45 @@ const api = {
 
   openPath: (filePath: string): Promise<string> => ipcRenderer.invoke('shell:openPath', filePath),
 
-  // --- MPV Player API ---
-  mpvOpen: (filePath: string, bounds?: { x: number; y: number; w: number; h: number }): Promise<void> =>
-    ipcRenderer.invoke('mpv:open', filePath, bounds),
+  // --- FFmpeg FLV Player API ---
+  playerOpen: (filePath: string, bounds?: { x: number; y: number; w: number; h: number }): Promise<{ streamUrl: string; status: any }> =>
+    ipcRenderer.invoke('player:open', filePath, bounds),
 
-  mpvClose: (): Promise<void> => ipcRenderer.invoke('mpv:close'),
+  playerClose: (): Promise<void> => ipcRenderer.invoke('player:close'),
 
-  mpvPlay: (): Promise<void> => ipcRenderer.invoke('mpv:play'),
+  playerPlay: (): Promise<void> => ipcRenderer.invoke('player:play'),
 
-  mpvPause: (): Promise<void> => ipcRenderer.invoke('mpv:pause'),
+  playerPause: (): Promise<void> => ipcRenderer.invoke('player:pause'),
 
-  mpvTogglePause: (): Promise<void> => ipcRenderer.invoke('mpv:togglePause'),
+  playerTogglePause: (): Promise<void> => ipcRenderer.invoke('player:togglePause'),
 
-  mpvSeek: (time: number): Promise<void> => ipcRenderer.invoke('mpv:seek', time),
+  playerSeek: (time: number): Promise<void> => ipcRenderer.invoke('player:seek', time),
 
-  mpvSeekRelative: (offset: number): Promise<void> => ipcRenderer.invoke('mpv:seekRelative', offset),
+  playerSeekRelative: (offset: number): Promise<void> => ipcRenderer.invoke('player:seekRelative', offset),
 
-  mpvFrameStep: (): Promise<void> => ipcRenderer.invoke('mpv:frameStep'),
+  playerFrameStep: (): Promise<void> => ipcRenderer.invoke('player:frameStep'),
 
-  mpvFrameBackStep: (): Promise<void> => ipcRenderer.invoke('mpv:frameBackStep'),
+  playerFrameBackStep: (): Promise<void> => ipcRenderer.invoke('player:frameBackStep'),
 
-  mpvCaptureFrame: (): Promise<{ buffer: ArrayBuffer; dataUrl: string }> =>
-    ipcRenderer.invoke('mpv:captureFrame'),
+  playerCaptureFrame: (): Promise<{ buffer: ArrayBuffer; dataUrl: string }> =>
+    ipcRenderer.invoke('player:captureFrame'),
 
-  mpvGetStatus: (): Promise<{ state: string; duration: number; timePos: number; filename: string } | null> =>
-    ipcRenderer.invoke('mpv:getStatus'),
+  playerGetStatus: (): Promise<{ state: string; duration: number; timePos: number; filename: string; streamUrl?: string } | null> =>
+    ipcRenderer.invoke('player:getStatus'),
 
-  mpvResize: (bounds: { x: number; y: number; w: number; h: number }): Promise<void> =>
-    ipcRenderer.invoke('mpv:resize', bounds),
+  playerResize: (bounds: { x: number; y: number; w: number; h: number }): Promise<void> =>
+    ipcRenderer.invoke('player:resize', bounds),
 
-  mpvOnStatus: (callback: (status: any) => void): void => {
-    ipcRenderer.invoke('mpv:onStatus')
-    ipcRenderer.on('mpv:statusUpdate', (_event, status) => callback(status))
+  playerOnStatus: (callback: (status: any) => void): void => {
+    ipcRenderer.invoke('player:onStatus')
+    ipcRenderer.on('player:statusUpdate', (_event, status) => callback(status))
   },
 
-  mpvOnStopped: (callback: () => void): void => {
-    ipcRenderer.invoke('mpv:onStopped')
-    ipcRenderer.on('mpv:stopped', () => callback())
+  playerOnStopped: (callback: () => void): void => {
+    ipcRenderer.invoke('player:onStopped')
+    ipcRenderer.on('player:stopped', () => callback())
   },
+
 }
 
 contextBridge.exposeInMainWorld('electronAPI', api)

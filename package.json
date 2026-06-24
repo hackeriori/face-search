@@ -9,12 +9,11 @@
     "dev:web": "node scripts/dev-web.js",
     "build": "vue-tsc --noEmit && vite build",
     "build:electron": "npm run build && electron-builder --win",
-    "rebuild": "electron-rebuild -f -w better-sqlite3",
-    "download-mpv": "node scripts/download-mpv.js",
-    "postinstall": "node scripts/download-mpv.js || echo \"[postinstall] mpv download skipped (see above for details)\""
+    "rebuild": "electron-rebuild -f -w better-sqlite3"
   },
   "dependencies": {
     "better-sqlite3": "^12.11.1",
+    "flv.js": "^1.6.2",
     "form-data": "^4.0.1",
     "node-fetch": "^2.7.0",
     "sqlite-vec": "^0.1.6"

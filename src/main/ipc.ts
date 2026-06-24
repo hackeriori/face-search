@@ -1,14 +1,14 @@
 import { ipcMain, clipboard, dialog, shell, BrowserWindow } from 'electron'
 import { insertFaceRecord, searchSimilarFaces, deleteVideo, deleteOrphanActors, searchMatchingActors, findOrCreateVideo, createActor, addActorFace, hasFaceRecord, getAllActorsWithRecords, getActorFaces, deleteActorFace, mergeActors, renameActor } from './database'
 import { checkApi, representImage } from './faceApi'
-import { MpvPlayer, type Bounds } from './mpv'
+import { FfmpegStreamPlayer, type Bounds } from './ffmpegStream'
 import fs from 'fs'
 import path from 'path'
 
-let mpvPlayer: MpvPlayer | null = null
+let player: FfmpegStreamPlayer | null = null
 
-export function setMpvPlayer(player: MpvPlayer) {
-  mpvPlayer = player
+export function setPlayer(ffmpegPlayer: FfmpegStreamPlayer) {
+  player = ffmpegPlayer
 }
 
 export function registerIpcHandlers(ipc: typeof ipcMain) {
@@ -176,47 +176,47 @@ export function registerIpcHandlers(ipc: typeof ipcMain) {
     return shell.openPath(filePath)
   })
 
-  // --- MPV Player IPC ---
-  ipc.handle('mpv:open', async (_event, filePath: string, bounds?: Bounds) => {
-    if (!mpvPlayer) throw new Error('MPV player not initialized')
-    await mpvPlayer.open(filePath, bounds)
+  // --- FFmpeg FLV Player IPC ---
+  ipc.handle('player:open', async (_event, filePath: string, _bounds?: Bounds) => {
+    if (!player) throw new Error('FFmpeg player not initialized')
+    return player.open(filePath)
   })
 
-  ipc.handle('mpv:close', async () => {
-    await mpvPlayer?.close()
+  ipc.handle('player:close', async () => {
+    await player?.close()
   })
 
-  ipc.handle('mpv:play', async () => {
-    await mpvPlayer?.play()
+  ipc.handle('player:play', async () => {
+    await player?.play()
   })
 
-  ipc.handle('mpv:pause', async () => {
-    await mpvPlayer?.pause()
+  ipc.handle('player:pause', async () => {
+    await player?.pause()
   })
 
-  ipc.handle('mpv:togglePause', async () => {
-    await mpvPlayer?.togglePause()
+  ipc.handle('player:togglePause', async () => {
+    await player?.togglePause()
   })
 
-  ipc.handle('mpv:seek', async (_event, time: number) => {
-    await mpvPlayer?.seek(time)
+  ipc.handle('player:seek', async (_event, time: number) => {
+    await player?.seek(time)
   })
 
-  ipc.handle('mpv:seekRelative', async (_event, offset: number) => {
-    await mpvPlayer?.seekRelative(offset)
+  ipc.handle('player:seekRelative', async (_event, offset: number) => {
+    await player?.seekRelative(offset)
   })
 
-  ipc.handle('mpv:frameStep', async () => {
-    await mpvPlayer?.frameStep()
+  ipc.handle('player:frameStep', async () => {
+    await player?.frameStep()
   })
 
-  ipc.handle('mpv:frameBackStep', async () => {
-    await mpvPlayer?.frameBackStep()
+  ipc.handle('player:frameBackStep', async () => {
+    await player?.frameBackStep()
   })
 
-  ipc.handle('mpv:captureFrame', async () => {
-    if (!mpvPlayer) throw new Error('MPV player not initialized')
-    const buffer = await mpvPlayer.captureFrame()
+  ipc.handle('player:captureFrame', async () => {
+    if (!player) throw new Error('FFmpeg player not initialized')
+    const buffer = await player.captureFrame()
     const blob = Buffer.from(buffer)
     const dataUrl = `data:image/jpeg;base64,${blob.toString('base64')}`
     const arrayBuffer = new ArrayBuffer(blob.length)
@@ -224,32 +224,33 @@ export function registerIpcHandlers(ipc: typeof ipcMain) {
     return { buffer: arrayBuffer, dataUrl }
   })
 
-  ipc.handle('mpv:getStatus', async () => {
-    return mpvPlayer?.status || null
+  ipc.handle('player:getStatus', async () => {
+    return player?.status || null
   })
 
-  ipc.handle('mpv:resize', async (_event, bounds: Bounds) => {
-    await mpvPlayer?.resize(bounds)
+  ipc.handle('player:resize', async (_event, bounds: Bounds) => {
+    await player?.resize(bounds)
   })
 
-  ipc.handle('mpv:onStatus', (_event) => {
-    if (!mpvPlayer) return
-    mpvPlayer.onStatusChange = (status) => {
+  ipc.handle('player:onStatus', (_event) => {
+    if (!player) return
+    player.onStatusChange = (status) => {
       const win = BrowserWindow.getFocusedWindow()
       if (win && !win.isDestroyed()) {
-        win.webContents.send('mpv:statusUpdate', status)
+        win.webContents.send('player:statusUpdate', status)
       }
     }
   })
 
-  ipc.handle('mpv:onStopped', (_event) => {
-    if (!mpvPlayer) return
+  ipc.handle('player:onStopped', (_event) => {
+    if (!player) return
     const handler = () => {
       const win = BrowserWindow.getFocusedWindow()
       if (win && !win.isDestroyed()) {
-        win.webContents.send('mpv:stopped')
+        win.webContents.send('player:stopped')
       }
     }
-    mpvPlayer.onStopped = handler
+    player.onStopped = handler
   })
+
 }

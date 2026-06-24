@@ -7,16 +7,28 @@
     <template v-else>
       <div
         ref="videoArea"
-        class="h-full bg-black flex items-center justify-center text-gray-600 select-none flex-1"
+        class="h-full bg-black flex items-center justify-center text-gray-600 select-none flex-1 relative"
       >
+        <video
+          ref="videoEl"
+          class="absolute inset-0 w-full h-full object-contain bg-black"
+          muted
+          playsinline
+        ></video>
+        <img
+          v-if="previewDataUrl && status.state !== 'playing'"
+          :src="previewDataUrl"
+          class="absolute inset-0 w-full h-full object-contain bg-black"
+          alt=""
+        />
         <div v-if="status.state === 'idle' || status.state === 'stopped'" class="flex flex-col items-center gap-2 text-gray-500">
           <svg class="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
-          <span class="text-xs">mpv 播放器中...</span>
+          <span class="text-xs">等待 ffmpeg 推流...</span>
         </div>
-        <div v-else class="w-full h-full flex items-center justify-center">
+        <div v-else-if="!activeStreamUrl" class="w-full h-full flex items-center justify-center">
           <div class="text-center">
             <div class="animate-pulse text-blue-400 text-xs">{{ status.filename }}</div>
           </div>
@@ -96,6 +108,7 @@
 
 <script setup lang="ts">
 import { ref, reactive, watch, onMounted, onUnmounted, nextTick } from 'vue'
+import flvjs from 'flv.js'
 import type { MpvStatusInfo, MpvBounds } from '../lib/types'
 
 const props = defineProps<{ videoPath: string }>()
@@ -105,6 +118,9 @@ const emit = defineEmits<{
 
 const containerEl = ref<HTMLDivElement | null>(null)
 const videoArea = ref<HTMLDivElement | null>(null)
+const videoEl = ref<HTMLVideoElement | null>(null)
+const activeStreamUrl = ref('')
+const previewDataUrl = ref('')
 const status = reactive<MpvStatusInfo>({
   state: 'idle',
   duration: 0,
@@ -112,22 +128,28 @@ const status = reactive<MpvStatusInfo>({
   filename: '',
 })
 let resizeObserver: ResizeObserver | null = null
+let flvPlayer: flvjs.Player | null = null
 
 onMounted(() => {
-  window.electronAPI.mpvOnStatus((s) => {
+  window.electronAPI.playerOnStatus((s) => {
     status.state = s.state
     status.duration = s.duration
     status.timePos = s.timePos
     status.filename = s.filename
+    status.streamUrl = s.streamUrl
+    if (s.state === 'playing' && s.streamUrl) {
+      previewDataUrl.value = ''
+      loadStream(s.streamUrl)
+    }
   })
-  window.electronAPI.mpvOnStopped(() => {
+  window.electronAPI.playerOnStopped(() => {
     status.state = 'stopped'
   })
 
   if (containerEl.value) {
     resizeObserver = new ResizeObserver(() => {
       if (props.videoPath && status.state !== 'idle') {
-        window.electronAPI.mpvResize(getVideoBounds())
+        window.electronAPI.playerResize(getVideoBounds())
       }
     })
     resizeObserver.observe(containerEl.value)
@@ -136,7 +158,8 @@ onMounted(() => {
 
 onUnmounted(() => {
   resizeObserver?.disconnect()
-  window.electronAPI.mpvClose()
+  destroyStream()
+  window.electronAPI.playerClose()
 })
 
 function getVideoBounds(): MpvBounds {
@@ -158,6 +181,10 @@ watch(() => props.videoPath, async (path) => {
   status.duration = 0
   status.timePos = 0
   status.filename = ''
+  status.streamUrl = undefined
+  activeStreamUrl.value = ''
+  previewDataUrl.value = ''
+  destroyStream()
 
   if (!path) return
 
@@ -165,9 +192,11 @@ watch(() => props.videoPath, async (path) => {
   const bounds = getVideoBounds()
 
   try {
-    await window.electronAPI.mpvOpen(path, bounds)
+    const result = await window.electronAPI.playerOpen(path, bounds)
+    Object.assign(status, result.status)
+    loadStream(result.streamUrl)
   } catch (e: any) {
-    console.error('mpv open failed:', e)
+    console.error('ffmpeg stream open failed:', e)
     status.state = 'stopped'
   }
 })
@@ -177,32 +206,45 @@ function onSeekInput(event: Event) {
   status.timePos = parseFloat(target.value)
 }
 
-function onSeekChange(event: Event) {
+async function onSeekChange(event: Event) {
   const target = event.target as HTMLInputElement
   const time = parseFloat(target.value)
   status.timePos = time
-  window.electronAPI.mpvSeek(time)
+  await window.electronAPI.playerSeek(time)
+  if (status.state !== 'playing') {
+    await updatePreviewFrame()
+  }
 }
 
 async function togglePlay() {
-  await window.electronAPI.mpvTogglePause()
+  const wasPlaying = status.state === 'playing'
+  await window.electronAPI.playerTogglePause()
+  if (wasPlaying) {
+    await updatePreviewFrame()
+  }
 }
 
 async function seekRelative(offset: number) {
-  await window.electronAPI.mpvSeekRelative(offset)
+  await window.electronAPI.playerSeekRelative(offset)
+  if (status.state !== 'playing') {
+    await updatePreviewFrame()
+  }
 }
 
 async function frameStep() {
-  await window.electronAPI.mpvFrameStep()
+  await window.electronAPI.playerFrameStep()
+  await updatePreviewFrame()
 }
 
 async function frameBackStep() {
-  await window.electronAPI.mpvFrameBackStep()
+  await window.electronAPI.playerFrameBackStep()
+  await updatePreviewFrame()
 }
 
 async function captureCurrentFrame() {
   try {
-    const result = await window.electronAPI.mpvCaptureFrame()
+    const result = await window.electronAPI.playerCaptureFrame()
+    previewDataUrl.value = result.dataUrl
     emit('frame-captured', result)
   } catch (e: any) {
     console.error('Frame capture failed:', e)
@@ -214,6 +256,52 @@ function formatTime(s: number): string {
   const m = Math.floor(s / 60)
   const sec = Math.floor(s % 60)
   return `${m}:${sec.toString().padStart(2, '0')}`
+}
+
+function loadStream(url: string) {
+  if (!videoEl.value || activeStreamUrl.value === url) return
+
+  destroyStream()
+  activeStreamUrl.value = url
+
+  if (flvjs.isSupported()) {
+    flvPlayer = flvjs.createPlayer({
+      type: 'flv',
+      url,
+      isLive: true,
+      hasAudio: false,
+    })
+    flvPlayer.attachMediaElement(videoEl.value)
+    flvPlayer.load()
+    videoEl.value.play().catch(() => {})
+    return
+  }
+
+  videoEl.value.src = url
+  videoEl.value.play().catch(() => {})
+}
+
+function destroyStream() {
+  if (flvPlayer) {
+    flvPlayer.unload()
+    flvPlayer.detachMediaElement()
+    flvPlayer.destroy()
+    flvPlayer = null
+  }
+  if (videoEl.value) {
+    videoEl.value.removeAttribute('src')
+    videoEl.value.load()
+  }
+}
+
+async function updatePreviewFrame() {
+  if (!props.videoPath) return
+  try {
+    const result = await window.electronAPI.playerCaptureFrame()
+    previewDataUrl.value = result.dataUrl
+  } catch (e: any) {
+    console.error('Frame preview failed:', e)
+  }
 }
 
 defineExpose({ captureFrame: captureCurrentFrame })

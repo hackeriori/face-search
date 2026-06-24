@@ -115,6 +115,7 @@ export interface MpvStatusInfo {
   duration: number
   timePos: number
   filename: string
+  streamUrl?: string
 }
 
 export interface ElectronAPI {
@@ -139,21 +140,21 @@ export interface ElectronAPI {
   readFileAsDataUrl: (filePath: string) => Promise<{ dataUrl: string; buffer: ArrayBuffer }>
   fileExists: (filePath: string) => Promise<boolean>
   openPath: (filePath: string) => Promise<string>
-  // --- MPV Player ---
-  mpvOpen: (filePath: string, bounds?: MpvBounds) => Promise<void>
-  mpvClose: () => Promise<void>
-  mpvPlay: () => Promise<void>
-  mpvPause: () => Promise<void>
-  mpvTogglePause: () => Promise<void>
-  mpvSeek: (time: number) => Promise<void>
-  mpvSeekRelative: (offset: number) => Promise<void>
-  mpvFrameStep: () => Promise<void>
-  mpvFrameBackStep: () => Promise<void>
-  mpvCaptureFrame: () => Promise<{ buffer: ArrayBuffer; dataUrl: string }>
-  mpvGetStatus: () => Promise<MpvStatusInfo | null>
-  mpvResize: (bounds: MpvBounds) => Promise<void>
-  mpvOnStatus: (callback: (status: MpvStatusInfo) => void) => void
-  mpvOnStopped: (callback: () => void) => void
+  // --- FFmpeg FLV Player ---
+  playerOpen: (filePath: string, bounds?: MpvBounds) => Promise<{ streamUrl: string; status: MpvStatusInfo }>
+  playerClose: () => Promise<void>
+  playerPlay: () => Promise<void>
+  playerPause: () => Promise<void>
+  playerTogglePause: () => Promise<void>
+  playerSeek: (time: number) => Promise<void>
+  playerSeekRelative: (offset: number) => Promise<void>
+  playerFrameStep: () => Promise<void>
+  playerFrameBackStep: () => Promise<void>
+  playerCaptureFrame: () => Promise<{ buffer: ArrayBuffer; dataUrl: string }>
+  playerGetStatus: () => Promise<MpvStatusInfo | null>
+  playerResize: (bounds: MpvBounds) => Promise<void>
+  playerOnStatus: (callback: (status: MpvStatusInfo) => void) => void
+  playerOnStopped: (callback: () => void) => void
 }
 
 declare global {

@@ -1,10 +1,11 @@
 import { app, BrowserWindow, ipcMain, Menu } from 'electron'
 import path from 'path'
 import { initDatabase, getDatabase } from './database'
-import { registerIpcHandlers, setMpvPlayer } from './ipc'
-import { MpvPlayer } from './mpv'
+import { registerIpcHandlers, setPlayer } from './ipc'
+import { FfmpegStreamPlayer } from './ffmpegStream'
 
 let mainWindow: BrowserWindow | null = null
+let player: FfmpegStreamPlayer | null = null
 
 function createWindow() {
   const iconPath = app.isPackaged
@@ -23,8 +24,8 @@ function createWindow() {
     }
   })
 
-  const mpvPlayer = new MpvPlayer(mainWindow)
-  setMpvPlayer(mpvPlayer)
+  player = new FfmpegStreamPlayer()
+  setPlayer(player)
 
   if (process.env.VITE_DEV_SERVER_URL) {
     mainWindow.loadURL(process.env.VITE_DEV_SERVER_URL)
@@ -43,6 +44,7 @@ app.whenReady().then(async () => {
 })
 
 app.on('window-all-closed', () => {
+  player?.close()
   const db = getDatabase()
   if (db) db.close()
   if (process.platform !== 'darwin') {

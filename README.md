@@ -4,7 +4,7 @@
 
 ## 功能
 
-- **人脸录入** — 导入视频文件，通过 mpv 嵌入式播放器逐帧浏览，捕获目标帧后调用 InsightFace API 检测人脸，自动匹配已有演员（Actor）或创建新条目，将人脸特征向量与截图存入本地 SQLite 数据库。
+- **人脸录入** — 导入视频文件，通过 ffmpeg 推送本地 HTTP-FLV 流并由前端 flv.js 播放，捕获目标帧后调用 InsightFace API 检测人脸，自动匹配已有演员（Actor）或创建新条目，将人脸特征向量与截图存入本地 SQLite 数据库。
 - **人脸搜索** — 上传图片或从剪贴板粘贴，提取人脸特征向量，按余弦相似度检索数据库中 Top-5 最相似的人脸，展示匹配演员、相似度分数及来源视频路径。
 - **人脸管理** — 浏览所有已录入的演员及其关联视频记录，支持展开/折叠、删除单条记录，并提供「清理孤儿数据」功能一键移除指向已不存在视频文件的记录。
 
@@ -18,7 +18,7 @@
 | 样式 | TailwindCSS v4 |
 | 数据库 | better-sqlite3 + sqlite-vec（向量搜索扩展） |
 | 人脸识别 | 远程 InsightFace API（`/represent`、`/check`） |
-| 视频播放 | mpv（子进程启动，命名管道 JSON IPC 通信，嵌入透明 BrowserWindow） |
+| 视频播放 | ffmpeg / ffprobe（主进程推送 HTTP-FLV）+ flv.js（前端播放） |
 
 ## 快速开始
 
@@ -26,14 +26,13 @@
 
 - Node.js >= 18
 - npm >= 9
+- ffmpeg 与 ffprobe 可执行文件在 `PATH` 中可用，或放置到 `resources/ffmpeg/` 目录。
 
 ### 安装
 
 ```bash
 npm install
 ```
-
-安装后自动执行 `postinstall` 脚本下载 mpv 到 `resources/mpv/`。
 
 ### 开发
 
@@ -54,7 +53,7 @@ npm run build:electron
 Renderer (Vue 3)  ←→  Preload (contextBridge)  ←→  Main Process (Electron)
                                                        ├── database.ts    — SQLite + sqlite-vec CRUD 与向量搜索
                                                        ├── faceApi.ts     — InsightFace REST 客户端
-                                                       ├── mpv.ts         — mpv 子进程管理 / IPC
+                                                       ├── ffmpegStream.ts — ffmpeg HTTP-FLV 推流与截图
                                                        └── ipc.ts         — 统一 IPC 处理器注册
 ```
 

@@ -37,5 +37,5 @@ Thumbs.db
 tmp/
 temp/
 
-# mpv binary bundle (downloaded by scripts/download-mpv.js)
-resources/mpv/
+# ffmpeg binary
+resources/ffmpeg/
