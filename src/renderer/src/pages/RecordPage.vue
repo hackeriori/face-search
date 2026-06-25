@@ -94,16 +94,30 @@
           </div>
           <div class="flex-1 overflow-y-auto px-5 py-3 min-h-0 space-y-3">
             <div
+              class="flex items-center gap-4 justify-between bg-blue-700/30 rounded-lg p-3 border border-blue-600/50"
+            >
+              <div class="relative shrink-0 w-auto h-60 rounded overflow-hidden bg-gray-900">
+                <img :src="currentImage ?? undefined"
+                     class="w-full h-full object-cover cursor-pointer" alt=""
+                     @click="previewCurrentImage()"/>
+              </div>
+              <div class="flex flex-col items-center">
+                <div class="text-sm font-medium text-blue-300">当前检测</div>
+                <div class="text-xs text-gray-400 my-2">待匹配的人脸</div>
+              </div>
+            </div>
+            <div
               v-for="candidate in actorCandidates"
               :key="candidate.actor_id"
               class="flex items-center gap-4 justify-between bg-gray-700/50 rounded-lg p-3 border border-gray-600 hover:border-blue-500 transition-colors"
             >
               <div class="relative shrink-0 w-auto h-60 rounded overflow-hidden bg-gray-900">
                 <img :src="`data:image/jpeg;base64,${candidate.image_blob}`"
-                     class="w-full h-full object-cover" alt=""/>
+                     class="w-full h-full object-cover cursor-pointer" alt=""
+                     @click="previewActorImage(candidate)"/>
               </div>
               <div class="flex flex-col items-center">
-                <div class="text-sm font-medium text-gray-200">{{ candidate.name || `演员 #${candidate.actor_id}` }}
+                <div class="text-sm font-medium text-orange-200">{{ candidate.name || `演员 #${candidate.actor_id}` }}
                 </div>
                 <div class="text-xs text-gray-400 my-2">相似度:
                   <span class="text-xs px-2 py-0.5 rounded font-bold"
@@ -120,6 +134,12 @@
             </div>
             <div class="px-5 py-3 border-t border-gray-700 flex items-center justify-end gap-2 shrink-0">
               <button
+                @click="cancelActorDialog"
+                class="px-4 py-2 bg-gray-600 hover:bg-gray-500 rounded text-sm transition-colors"
+              >
+                取消
+              </button>
+              <button
                 @click="rejectActorMatch"
                 class="px-4 py-2 bg-gray-600 hover:bg-gray-500 rounded text-sm transition-colors"
               >
@@ -130,6 +150,16 @@
         </div>
       </div>
     </Teleport>
+
+    <!-- Image Preview Overlay -->
+    <div v-if="previewSrc" class="fixed inset-0 z-[100] flex items-center justify-center bg-black/80"
+         @click.self="previewSrc = null">
+      <div class="relative inline-flex overflow-hidden rounded-lg">
+        <img ref="previewDisplayImage" :src="previewSrc" class="max-w-[90vw] max-h-[90vh] object-contain"
+             @load="drawPreviewFace"/>
+        <canvas ref="previewFaceCanvas" class="absolute inset-0 w-full h-full pointer-events-none"/>
+      </div>
+    </div>
 
     <!-- Add Reference Dialog -->
     <Teleport to="body">
@@ -204,6 +234,11 @@ const messageType = ref<'success' | 'error'>('success')
 const imageNaturalWidth = ref(0)
 const imageNaturalHeight = ref(0)
 const imageContainer = ref<HTMLElement | null>(null)
+
+const previewSrc = ref<string | null>(null)
+const previewFacialArea = ref<{x: number; y: number; w: number; h: number} | null>(null)
+const previewDisplayImage = ref<HTMLImageElement | null>(null)
+const previewFaceCanvas = ref<HTMLCanvasElement | null>(null)
 
 // Actor match dialog
 const showActorDialog = ref(false)
@@ -453,6 +488,58 @@ async function resolveActorByDialog(
       }
     }
   })
+}
+
+function previewCurrentImage() {
+  if (!currentImage.value || !selectedFace.value) return
+  previewSrc.value = currentImage.value
+  previewFacialArea.value = {
+    x: selectedFace.value.facial_area.x,
+    y: selectedFace.value.facial_area.y,
+    w: selectedFace.value.facial_area.w,
+    h: selectedFace.value.facial_area.h
+  }
+}
+
+function previewActorImage(candidate: ActorMatchCandidate) {
+  previewSrc.value = `data:image/jpeg;base64,${candidate.image_blob}`
+  previewFacialArea.value = {
+    x: candidate.facial_area_x,
+    y: candidate.facial_area_y,
+    w: candidate.facial_area_w,
+    h: candidate.facial_area_h
+  }
+}
+
+function drawPreviewFace() {
+  const canvas = previewFaceCanvas.value
+  const img = previewDisplayImage.value
+  if (!canvas || !img || !previewFacialArea.value) return
+
+  const rect = canvas.getBoundingClientRect()
+  canvas.width = rect.width
+  canvas.height = rect.height
+
+  const ctx = canvas.getContext('2d')
+  if (!ctx) return
+
+  const scale = Math.min(rect.width / img.naturalWidth, rect.height / img.naturalHeight)
+  const renderedW = img.naturalWidth * scale
+  const renderedH = img.naturalHeight * scale
+  const offsetX = (rect.width - renderedW) / 2
+  const offsetY = (rect.height - renderedH) / 2
+  const faceScaleX = renderedW / img.naturalWidth
+  const faceScaleY = renderedH / img.naturalHeight
+
+  const fa = previewFacialArea.value
+  const x = offsetX + fa.x * faceScaleX
+  const y = offsetY + fa.y * faceScaleY
+  const w = fa.w * faceScaleX
+  const h = fa.h * faceScaleY
+
+  ctx.strokeStyle = '#22c55e'
+  ctx.lineWidth = 3
+  ctx.strokeRect(x, y, w, h)
 }
 
 function selectActorMatch(actorId: number) {
