@@ -340,20 +340,43 @@ async function togglePlay() {
 }
 
 async function seekRelative(offset: number) {
-  await window.electronAPI.playerSeekRelative(offset)
-  if (status.state !== 'playing') {
+  if (locallyPaused.value) {
+    const newTime = Math.max(0, Math.min(status.timePos + offset, status.duration))
+    status.timePos = newTime
+    await window.electronAPI.playerSeek(newTime)
+    videoEl.value?.pause()
     await updatePreviewFrame()
+  } else {
+    await window.electronAPI.playerSeekRelative(offset)
   }
 }
 
 async function frameStep() {
-  await window.electronAPI.playerFrameStep()
-  await updatePreviewFrame()
+  if (locallyPaused.value) {
+    const fps = 25
+    const newTime = Math.min(status.timePos + 1 / fps, status.duration)
+    status.timePos = newTime
+    await window.electronAPI.playerSeek(newTime)
+    videoEl.value?.pause()
+    await updatePreviewFrame()
+  } else {
+    await window.electronAPI.playerFrameStep()
+    await updatePreviewFrame()
+  }
 }
 
 async function frameBackStep() {
-  await window.electronAPI.playerFrameBackStep()
-  await updatePreviewFrame()
+  if (locallyPaused.value) {
+    const fps = 25
+    const newTime = Math.max(0, status.timePos - 1 / fps)
+    status.timePos = newTime
+    await window.electronAPI.playerSeek(newTime)
+    videoEl.value?.pause()
+    await updatePreviewFrame()
+  } else {
+    await window.electronAPI.playerFrameBackStep()
+    await updatePreviewFrame()
+  }
 }
 
 function onProgressHover(event: MouseEvent) {
@@ -389,7 +412,9 @@ function onProgressLeave() {
 
 async function captureCurrentFrame() {
   try {
-    const result = await window.electronAPI.playerCaptureFrameAt(status.timePos)
+    const result = locallyPaused.value
+      ? await window.electronAPI.playerCaptureFrameAt(status.timePos)
+      : await window.electronAPI.playerCaptureFrame()
     previewDataUrl.value = result.dataUrl
     emit('frame-captured', result)
   } catch (e: any) {
@@ -463,7 +488,9 @@ function destroyStream() {
 async function updatePreviewFrame() {
   if (!props.videoPath) return
   try {
-    const result = await window.electronAPI.playerCaptureFrame()
+    const result = locallyPaused.value
+      ? await window.electronAPI.playerCaptureFrameAt(status.timePos)
+      : await window.electronAPI.playerCaptureFrame()
     previewDataUrl.value = result.dataUrl
   } catch (e: any) {
     console.error('Frame preview failed:', e)
