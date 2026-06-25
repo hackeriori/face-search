@@ -389,7 +389,7 @@ function onProgressLeave() {
 
 async function captureCurrentFrame() {
   try {
-    const result = await window.electronAPI.playerCaptureFrame()
+    const result = await window.electronAPI.playerCaptureFrameAt(status.timePos)
     previewDataUrl.value = result.dataUrl
     emit('frame-captured', result)
   } catch (e: any) {
