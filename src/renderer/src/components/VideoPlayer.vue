@@ -170,6 +170,8 @@ const hoverThumbnail = ref('')
 const showHoverThumbnail = ref(false)
 const resuming = ref(false)
 const isMuted = ref(false)
+const locallyPaused = ref(false)
+const mpvPaused = ref(false)
 let hoverThumbTimer: ReturnType<typeof setTimeout> | null = null
 const status = reactive<MpvStatusInfo>({
   state: 'idle',
@@ -184,13 +186,16 @@ let flvPlayer: flvjs.Player | null = null
 
 onMounted(() => {
   window.electronAPI.playerOnStatus((s) => {
-    status.state = s.state
     status.duration = s.duration
-    if (!seeking) {
-      status.timePos = s.timePos
-    }
     status.filename = s.filename
     status.streamUrl = s.streamUrl
+    mpvPaused.value = s.state === 'paused'
+    if (!locallyPaused.value) {
+      status.state = s.state
+      if (!seeking) {
+        status.timePos = s.timePos
+      }
+    }
     if (s.state === 'playing' && s.streamUrl) {
       if (!resuming.value) {
         previewDataUrl.value = ''
@@ -199,6 +204,8 @@ onMounted(() => {
     }
   })
   window.electronAPI.playerOnStopped(() => {
+    locallyPaused.value = false
+    mpvPaused.value = false
     status.state = 'stopped'
   })
 
@@ -248,6 +255,8 @@ function getVideoBounds(): MpvBounds {
 }
 
 watch(() => props.videoPath, async (path) => {
+  locallyPaused.value = false
+  mpvPaused.value = false
   status.state = 'idle'
   status.duration = 0
   status.timePos = 0
@@ -300,16 +309,22 @@ function toggleMute() {
 }
 
 async function togglePlay() {
-  const wasPlaying = status.state === 'playing'
-  if (wasPlaying) {
+  const video = videoEl.value
+  if (locallyPaused.value) {
+    resuming.value = true
+    locallyPaused.value = false
+    video?.play().catch(() => {})
+    if (mpvPaused.value) {
+      window.electronAPI.playerTogglePause().catch(() => {})
+    }
+  } else {
+    locallyPaused.value = true
+    status.state = 'paused'
+    video?.pause()
     const frame = captureVideoFrame()
     if (frame) {
       previewDataUrl.value = frame
     }
-    await window.electronAPI.playerTogglePause()
-  } else {
-    resuming.value = true
-    await window.electronAPI.playerTogglePause()
   }
 }
 
@@ -407,6 +422,9 @@ function loadStream(url: string) {
       url,
       isLive: true,
       hasAudio: true,
+    }, {
+      autoCleanupSourceBuffer: false,
+      stashInitialSize: 1024 * 512,
     })
     flvPlayer.attachMediaElement(videoEl.value)
     flvPlayer.load()
