@@ -275,13 +275,13 @@ watch(() => props.videoPath, async (path) => {
 
 function onSeekInput(event: Event) {
   const target = event.target as HTMLInputElement
-  pendingSeekTime = parseFloat(target.value)
+  pendingSeekTime = showHoverThumbnail.value ? hoverTime.value : parseFloat(target.value)
   status.timePos = pendingSeekTime
   seeking = true
 }
 
 async function onSeekChange() {
-  const time = pendingSeekTime
+  const time = showHoverThumbnail.value ? hoverTime.value : pendingSeekTime
   pendingSeekTime = -1
   if (time < 0) return
   status.timePos = time
