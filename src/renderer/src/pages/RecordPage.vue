@@ -22,7 +22,8 @@
                     class="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 rounded text-sm transition-colors">播放视频
             </button>
             <button @click="openVideo"
-                    class="px-3 py-1.5 bg-purple-600 hover:bg-purple-700 rounded text-sm transition-colors">{{ savedVideoPath ? '在外部播放器中打开' : '打开视频' }}
+                    class="px-3 py-1.5 bg-purple-600 hover:bg-purple-700 rounded text-sm transition-colors">
+              {{ savedVideoPath ? '在外部播放器中打开' : '打开视频' }}
             </button>
             <button @click="captureFrame" :disabled="!videoPath"
                     class="px-3 py-1.5 bg-green-600 hover:bg-green-700 rounded text-sm disabled:opacity-40 transition-colors">
@@ -84,37 +85,37 @@
 
     <!-- Actor Match Dialog -->
     <Teleport to="body">
-      <div v-if="showActorDialog" class="fixed inset-0 z-50 bg-black/60" @click.self="cancelActorDialog">
-        <div class="bg-gray-800 rounded-lg shadow-xl border border-gray-600 flex flex-col" :style="dialogPositionStyle">
-          <div class="flex flex-col h-full">
-            <div class="px-5 py-4 border-b border-gray-700 shrink-0">
-              <h3 class="text-base font-medium text-gray-200">检测到匹配的演员</h3>
-              <p class="text-sm text-gray-400 mt-1">系统发现以下演员与当前人脸相似，请确认是否为同一人：</p>
-            </div>
-            <div class="flex-1 overflow-y-auto px-5 py-3 min-h-0 space-y-3">
-              <div
-                v-for="candidate in actorCandidates"
-                :key="candidate.actor_id"
-                class="flex items-center gap-4 justify-between bg-gray-700/50 rounded-lg p-3 border border-gray-600 hover:border-blue-500 transition-colors"
-              >
-                <div class="relative shrink-0 w-auto h-60 rounded overflow-hidden bg-gray-900">
-                  <img :src="`data:image/jpeg;base64,${candidate.image_blob}`"
-                       class="w-full h-full object-cover" alt=""/>
+      <div v-if="showActorDialog" class="fixed inset-4 z-50 rounded-lg bg-black/60" @click.self="cancelActorDialog">
+        <div class="bg-gray-800 shadow-xl border border-gray-600 h-full flex flex-col">
+
+          <div class="px-5 py-4 border-b border-gray-700 shrink-0">
+            <h3 class="text-base font-medium text-gray-200">检测到匹配的演员</h3>
+            <p class="text-sm text-gray-400 mt-1">系统发现以下演员与当前人脸相似，请确认是否为同一人：</p>
+          </div>
+          <div class="flex-1 overflow-y-auto px-5 py-3 min-h-0 space-y-3">
+            <div
+              v-for="candidate in actorCandidates"
+              :key="candidate.actor_id"
+              class="flex items-center gap-4 justify-between bg-gray-700/50 rounded-lg p-3 border border-gray-600 hover:border-blue-500 transition-colors"
+            >
+              <div class="relative shrink-0 w-auto h-60 rounded overflow-hidden bg-gray-900">
+                <img :src="`data:image/jpeg;base64,${candidate.image_blob}`"
+                     class="w-full h-full object-cover" alt=""/>
+              </div>
+              <div class="flex flex-col items-center">
+                <div class="text-sm font-medium text-gray-200">{{ candidate.name || `演员 #${candidate.actor_id}` }}
                 </div>
-                <div class="flex flex-col items-center">
-                  <div class="text-sm font-medium text-gray-200">{{ candidate.name || `演员 #${candidate.actor_id}` }}</div>
-                  <div class="text-xs text-gray-400 my-2">相似度:
-                    <span class="text-xs px-2 py-0.5 rounded font-bold"
-                          :class="candidate.similarity >= 80 ? 'bg-green-600 text-white' : candidate.similarity >= 60 ? 'bg-yellow-600 text-white' : 'bg-red-600 text-white'"
-                    >
+                <div class="text-xs text-gray-400 my-2">相似度:
+                  <span class="text-xs px-2 py-0.5 rounded font-bold"
+                        :class="candidate.similarity >= 80 ? 'bg-green-600 text-white' : candidate.similarity >= 60 ? 'bg-yellow-600 text-white' : 'bg-red-600 text-white'"
+                  >
                       {{ candidate.similarity }}%
                     </span>
-                  </div>
-                  <button @click="selectActorMatch(candidate.actor_id)"
-                          class="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 rounded text-sm shrink-0 transition-colors">
-                    同一演员
-                  </button>
                 </div>
+                <button @click="selectActorMatch(candidate.actor_id)"
+                        class="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 rounded text-sm shrink-0 transition-colors">
+                  同一演员
+                </button>
               </div>
             </div>
             <div class="px-5 py-3 border-t border-gray-700 flex items-center justify-end gap-2 shrink-0">
@@ -282,19 +283,6 @@ async function onImageSelected(data: {dataUrl: string; buffer: ArrayBuffer}) {
   currentImageBuffer.value = data.buffer
   await detectFaces(data.dataUrl)
 }
-
-const dialogPositionStyle = computed(() => {
-  const el = imageContainer.value
-  if (!el) return {} as any
-  const rect = el.getBoundingClientRect()
-  return {
-    position: 'fixed' as const,
-    left: `${rect.left}px`,
-    top: `${rect.top}px`,
-    width: `${rect.width}px`,
-    height: `${rect.height}px`
-  }
-})
 
 async function detectFaces(imageDataUrl: string) {
   faces.value = []
