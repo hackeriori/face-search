@@ -21,6 +21,7 @@
           :muted="isMuted"
           playsinline
           @playing="onVideoPlaying"
+          @click="togglePlay"
         ></video>
         <img
           v-if="previewDataUrl && (status.state !== 'playing' || resuming)"
@@ -57,7 +58,7 @@
             :value="status.timePos"
             @input="onSeekInput"
             @change="onSeekChange"
-            class="w-full h-1 accent-blue-500 cursor-pointer"
+            class="w-full h-1 accent-blue-500 cursor-pointer focus:outline-none"
           />
           <div
             v-if="showHoverThumbnail && hoverThumbnail"
@@ -184,6 +185,15 @@ let pendingSeekTime = -1
 let resizeObserver: ResizeObserver | null = null
 let flvPlayer: flvjs.Player | null = null
 
+function onKeyDown(e: KeyboardEvent) {
+  if (e.code !== 'Space') return
+  const el = e.target as HTMLElement
+  if (el.tagName === 'INPUT' && (el as HTMLInputElement).type !== 'range') return
+  if (el.tagName === 'TEXTAREA') return
+  e.preventDefault()
+  togglePlay()
+}
+
 onMounted(() => {
   window.electronAPI.playerOnStatus((s) => {
     status.duration = s.duration
@@ -217,9 +227,11 @@ onMounted(() => {
     })
     resizeObserver.observe(containerEl.value)
   }
+  document.addEventListener('keydown', onKeyDown)
 })
 
 onUnmounted(() => {
+  document.removeEventListener('keydown', onKeyDown)
   resizeObserver?.disconnect()
   destroyStream()
   window.electronAPI.playerClose()
@@ -302,6 +314,9 @@ async function onSeekChange() {
   if (status.state !== 'playing') {
     await updatePreviewFrame()
   }
+  if (locallyPaused.value) {
+    videoEl.value?.pause()
+  }
 }
 
 function toggleMute() {
@@ -321,10 +336,6 @@ async function togglePlay() {
     locallyPaused.value = true
     status.state = 'paused'
     video?.pause()
-    const frame = captureVideoFrame()
-    if (frame) {
-      previewDataUrl.value = frame
-    }
   }
 }
 
