@@ -173,6 +173,8 @@ const resuming = ref(false)
 const isMuted = ref(false)
 const locallyPaused = ref(false)
 const mpvPaused = ref(false)
+const streamStartFileTime = ref(0)
+const videoTimeAtFirstFrame = ref<number | null>(null)
 let hoverThumbTimer: ReturnType<typeof setTimeout> | null = null
 const status = reactive<MpvStatusInfo>({
   state: 'idle',
@@ -184,6 +186,14 @@ let seeking = false
 let pendingSeekTime = -1
 let resizeObserver: ResizeObserver | null = null
 let flvPlayer: flvjs.Player | null = null
+
+function getAccurateTimePos(): number {
+  const video = videoEl.value
+  if (!video || videoTimeAtFirstFrame.value === null || !isFinite(video.currentTime)) {
+    return status.timePos
+  }
+  return streamStartFileTime.value + (video.currentTime - videoTimeAtFirstFrame.value)
+}
 
 function onKeyDown(e: KeyboardEvent) {
   if (e.code !== 'Space') return
@@ -412,7 +422,7 @@ function onProgressLeave() {
 async function captureCurrentFrame() {
   try {
     const result = locallyPaused.value
-      ? await window.electronAPI.playerCaptureFrameAt(status.timePos)
+      ? await window.electronAPI.playerCaptureFrameAt(getAccurateTimePos())
       : await window.electronAPI.playerCaptureFrame()
     previewDataUrl.value = result.dataUrl
     emit('frame-captured', result)
@@ -434,6 +444,9 @@ function captureVideoFrame(): string {
 }
 
 function onVideoPlaying() {
+  if (!resuming.value && videoTimeAtFirstFrame.value === null) {
+    videoTimeAtFirstFrame.value = videoEl.value?.currentTime ?? 0
+  }
   previewDataUrl.value = ''
   resuming.value = false
 }
@@ -447,6 +460,9 @@ function formatTime(s: number): string {
 
 function loadStream(url: string) {
   if (!videoEl.value || activeStreamUrl.value === url) return
+
+  streamStartFileTime.value = status.timePos
+  videoTimeAtFirstFrame.value = null
 
   destroyStream()
   activeStreamUrl.value = url
@@ -488,7 +504,7 @@ async function updatePreviewFrame() {
   if (!props.videoPath) return
   try {
     const result = locallyPaused.value
-      ? await window.electronAPI.playerCaptureFrameAt(status.timePos)
+      ? await window.electronAPI.playerCaptureFrameAt(getAccurateTimePos())
       : await window.electronAPI.playerCaptureFrame()
     previewDataUrl.value = result.dataUrl
   } catch (e: any) {
