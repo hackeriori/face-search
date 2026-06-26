@@ -217,10 +217,16 @@ onMounted(() => {
       }
     }
     if (s.state === 'playing' && s.streamUrl) {
-      if (!resuming.value) {
-        previewDataUrl.value = ''
+      if (locallyPaused.value) {
+        if (activeStreamUrl.value !== s.streamUrl) {
+          videoTimeAtFirstFrame.value = null
+        }
+      } else {
+        if (!resuming.value) {
+          previewDataUrl.value = ''
+        }
+        loadStream(s.streamUrl)
       }
-      loadStream(s.streamUrl)
     }
   })
   window.electronAPI.playerOnStopped(() => {
@@ -350,7 +356,8 @@ async function togglePlay() {
 
 async function seekRelative(offset: number) {
   if (locallyPaused.value) {
-    const newTime = Math.max(0, Math.min(status.timePos + offset, status.duration))
+    const accurateTime = getAccurateTimePos()
+    const newTime = Math.max(0, Math.min(accurateTime + offset, status.duration))
     status.timePos = newTime
     await window.electronAPI.playerSeek(newTime)
     videoEl.value?.pause()
@@ -363,10 +370,12 @@ async function seekRelative(offset: number) {
 async function frameStep() {
   if (locallyPaused.value) {
     const fps = 25
-    const newTime = Math.min(status.timePos + 1 / fps, status.duration)
+    const accurateTime = getAccurateTimePos()
+    const newTime = Math.min(accurateTime + 1 / fps, status.duration)
     status.timePos = newTime
     await window.electronAPI.playerSeek(newTime)
     videoEl.value?.pause()
+    destroyStream()
     await updatePreviewFrame()
   } else {
     await window.electronAPI.playerFrameStep()
@@ -377,10 +386,12 @@ async function frameStep() {
 async function frameBackStep() {
   if (locallyPaused.value) {
     const fps = 25
-    const newTime = Math.max(0, status.timePos - 1 / fps)
+    const accurateTime = getAccurateTimePos()
+    const newTime = Math.max(0, accurateTime - 1 / fps)
     status.timePos = newTime
     await window.electronAPI.playerSeek(newTime)
     videoEl.value?.pause()
+    destroyStream()
     await updatePreviewFrame()
   } else {
     await window.electronAPI.playerFrameBackStep()
