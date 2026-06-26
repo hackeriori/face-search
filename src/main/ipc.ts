@@ -242,6 +242,14 @@ export function registerIpcHandlers(ipc: typeof ipcMain) {
     await player?.resize(bounds)
   })
 
+  ipc.handle('player:pauseTime', async () => {
+    await player?.pauseTime()
+  })
+
+  ipc.handle('player:resumeTime', async () => {
+    await player?.resumeTime()
+  })
+
   ipc.handle('player:onStatus', (_event) => {
     if (!player) return
     player.onStatusChange = (status) => {

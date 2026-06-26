@@ -67,6 +67,7 @@ export class FfmpegStreamPlayer {
   private startedAtMs = 0
   private sessionId = 0
   private stderrLog: string[] = []
+  private timePaused = false
 
   status: PlayerStatus = { state: 'idle', duration: 0, timePos: 0, filename: '' }
   onStatusChange: ((status: PlayerStatus) => void) | null = null
@@ -180,10 +181,26 @@ export class FfmpegStreamPlayer {
     // The video is rendered inside the renderer process; layout is handled by CSS.
   }
 
+  async pauseTime(): Promise<void> {
+    if (this.status.state !== 'playing' || this.timePaused) return
+    this.updateTimePos()
+    this.timePaused = true
+    this.onStatusChange?.(this.status)
+  }
+
+  async resumeTime(): Promise<void> {
+    if (!this.timePaused) return
+    this.timePaused = false
+    this.startAt = this.status.timePos
+    this.startedAtMs = Date.now()
+    this.onStatusChange?.(this.status)
+  }
+
   async close(): Promise<void> {
     await this.closeStreamOnly()
     this.stopPolling()
     this.filePath = ''
+    this.timePaused = false
     this.status = { state: 'idle', duration: 0, timePos: 0, filename: '' }
     this.onStatusChange?.(this.status)
   }
@@ -330,7 +347,7 @@ export class FfmpegStreamPlayer {
   }
 
   private updateTimePos(): void {
-    if (this.status.state !== 'playing') return
+    if (this.status.state !== 'playing' || this.timePaused) return
     const elapsed = (Date.now() - this.startedAtMs) / 1000
     const nextTime = this.startAt + elapsed
     this.status.timePos = this.status.duration > 0 ? Math.min(nextTime, this.status.duration) : nextTime

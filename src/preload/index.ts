@@ -97,6 +97,10 @@ const api = {
   playerResize: (bounds: { x: number; y: number; w: number; h: number }): Promise<void> =>
     ipcRenderer.invoke('player:resize', bounds),
 
+  playerPauseTime: (): Promise<void> => ipcRenderer.invoke('player:pauseTime'),
+
+  playerResumeTime: (): Promise<void> => ipcRenderer.invoke('player:resumeTime'),
+
   playerOnStatus: (callback: (status: any) => void): void => {
     ipcRenderer.invoke('player:onStatus')
     ipcRenderer.on('player:statusUpdate', (_event, status) => callback(status))

@@ -329,12 +329,11 @@ async function togglePlay() {
     resuming.value = true
     locallyPaused.value = false
     video?.play().catch(() => {})
-    if (mpvPaused.value) {
-      window.electronAPI.playerTogglePause().catch(() => {})
-    }
+    window.electronAPI.playerResumeTime().catch(() => {})
   } else {
     locallyPaused.value = true
     status.state = 'paused'
+    window.electronAPI.playerPauseTime().catch(() => {})
     video?.pause()
   }
 }
