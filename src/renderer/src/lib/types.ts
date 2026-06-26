@@ -151,6 +151,8 @@ export interface ElectronAPI {
   playerSeekRelative: (offset: number) => Promise<void>
   playerFrameStep: () => Promise<void>
   playerFrameBackStep: () => Promise<void>
+  playerPauseTime: () => Promise<void>
+  playerResumeTime: () => Promise<void>
   playerCaptureFrame: () => Promise<{ buffer: ArrayBuffer; dataUrl: string }>
   playerCaptureFrameAt: (time: number) => Promise<{ buffer: ArrayBuffer; dataUrl: string }>
   playerGetStatus: () => Promise<MpvStatusInfo | null>

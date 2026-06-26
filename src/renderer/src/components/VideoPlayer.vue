@@ -431,18 +431,6 @@ async function captureCurrentFrame() {
   }
 }
 
-function captureVideoFrame(): string {
-  const video = videoEl.value
-  if (!video || !video.videoWidth || !video.videoHeight) return ''
-  const canvas = document.createElement('canvas')
-  canvas.width = video.videoWidth
-  canvas.height = video.videoHeight
-  const ctx = canvas.getContext('2d')
-  if (!ctx) return ''
-  ctx.drawImage(video, 0, 0)
-  return canvas.toDataURL('image/jpeg', 0.9)
-}
-
 function onVideoPlaying() {
   if (!resuming.value && videoTimeAtFirstFrame.value === null) {
     videoTimeAtFirstFrame.value = videoEl.value?.currentTime ?? 0
