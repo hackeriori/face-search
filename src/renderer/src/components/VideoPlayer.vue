@@ -345,6 +345,7 @@ async function togglePlay() {
     resuming.value = true
     locallyPaused.value = false
     video?.play().catch(() => {})
+    window.electronAPI.playerPlay().catch(() => {})
     window.electronAPI.playerResumeTime().catch(() => {})
   } else {
     locallyPaused.value = true
@@ -368,35 +369,41 @@ async function seekRelative(offset: number) {
 }
 
 async function frameStep() {
+  const fps = 25
+  const accurateTime = getAccurateTimePos()
+  const newTime = Math.min(accurateTime + 1 / fps, status.duration)
   if (locallyPaused.value) {
-    const fps = 25
-    const accurateTime = getAccurateTimePos()
-    const newTime = Math.min(accurateTime + 1 / fps, status.duration)
     status.timePos = newTime
     await window.electronAPI.playerSeek(newTime)
     videoEl.value?.pause()
     destroyStream()
-    await updatePreviewFrame()
   } else {
+    status.timePos = newTime
     await window.electronAPI.playerFrameStep()
-    await updatePreviewFrame()
+    locallyPaused.value = true
+    status.state = 'paused'
+    destroyStream()
   }
+  await updatePreviewFrame()
 }
 
 async function frameBackStep() {
+  const fps = 25
+  const accurateTime = getAccurateTimePos()
+  const newTime = Math.max(0, accurateTime - 1 / fps)
   if (locallyPaused.value) {
-    const fps = 25
-    const accurateTime = getAccurateTimePos()
-    const newTime = Math.max(0, accurateTime - 1 / fps)
     status.timePos = newTime
     await window.electronAPI.playerSeek(newTime)
     videoEl.value?.pause()
     destroyStream()
-    await updatePreviewFrame()
   } else {
+    status.timePos = newTime
     await window.electronAPI.playerFrameBackStep()
-    await updatePreviewFrame()
+    locallyPaused.value = true
+    status.state = 'paused'
+    destroyStream()
   }
+  await updatePreviewFrame()
 }
 
 function onProgressHover(event: MouseEvent) {
