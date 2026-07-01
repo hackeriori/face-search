@@ -1,6 +1,6 @@
 import type {
   ApiCheckResult, SearchResult, DetectedFace, ActorGroup, PaginatedActorGroups, AddActorFaceParams, ActorFace,
-  ActorMatchCandidate
+  ActorMatchCandidate, ActorVideoCounts
 } from './types'
 
 export async function checkApi(): Promise<ApiCheckResult> {
@@ -52,6 +52,10 @@ export async function hasFaceRecord(actorId: number, videoId: number): Promise<b
 
 export async function getAllActorsWithRecords(page?: number, pageSize?: number, searchQuery?: string): Promise<PaginatedActorGroups> {
   return window.electronAPI.getAllActorsWithRecords(page, pageSize, searchQuery)
+}
+
+export async function countActorsAndVideos(searchQuery?: string): Promise<ActorVideoCounts> {
+  return window.electronAPI.countActorsAndVideos(searchQuery)
 }
 
 export async function mergeActors(sourceActorId: number, targetActorId: number): Promise<void> {

@@ -241,13 +241,12 @@ export function searchSimilarFaces(embedding: Buffer, maxDistance: number = 0.5)
   return rows
 }
 
-export function getAllActorsWithRecords(page?: number, pageSize?: number, searchQuery?: string): { data: any[], total: number } {
+export function countActorsAndVideos(searchQuery?: string): { totalActors: number, totalVideos: number } {
   if (!db) throw new Error('Database not initialized')
 
   const hasSearch = !!searchQuery && searchQuery.trim().length > 0
   const searchPattern = hasSearch ? `%${searchQuery.trim()}%` : null
 
-  // Count total matching actors
   let countSql = `SELECT COUNT(DISTINCT a.id) as total FROM actors a`
   let countParams: any[] = []
   if (hasSearch) {
@@ -255,7 +254,25 @@ export function getAllActorsWithRecords(page?: number, pageSize?: number, search
     countSql += ` WHERE a.name LIKE ? OR v.path LIKE ?`
     countParams = [searchPattern, searchPattern]
   }
-  const total = (db.prepare(countSql).get(...countParams) as any).total
+  const totalActors = (db.prepare(countSql).get(...countParams) as any).total
+
+  let videoCountSql = `SELECT COUNT(DISTINCT fr.video_id) as total FROM face_records fr`
+  let videoCountParams: any[] = []
+  if (hasSearch) {
+    videoCountSql += ` JOIN actors a ON a.id = fr.actor_id LEFT JOIN videos v ON v.id = fr.video_id`
+    videoCountSql += ` WHERE a.name LIKE ? OR v.path LIKE ?`
+    videoCountParams = [searchPattern, searchPattern]
+  }
+  const totalVideos = (db.prepare(videoCountSql).get(...videoCountParams) as any).total
+
+  return { totalActors, totalVideos }
+}
+
+export function getAllActorsWithRecords(page?: number, pageSize?: number, searchQuery?: string): { data: any[], total: number, totalVideos: number } {
+  if (!db) throw new Error('Database not initialized')
+
+  const hasSearch = !!searchQuery && searchQuery.trim().length > 0
+  const searchPattern = hasSearch ? `%${searchQuery.trim()}%` : null
 
   // Build data query with paginated actor subquery
   const isPaginated = page !== undefined && pageSize !== undefined
@@ -335,7 +352,7 @@ export function getAllActorsWithRecords(page?: number, pageSize?: number, search
     }
   }
 
-  return { data: Array.from(actorMap.values()), total }
+  return { data: Array.from(actorMap.values()), total: 0, totalVideos: 0 }
 }
 
 export function getActorFaces(actorId: number): ActorFaceRow[] {

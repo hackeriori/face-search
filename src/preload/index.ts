@@ -41,6 +41,9 @@ const api = {
   getAllActorsWithRecords: (page?: number, pageSize?: number, searchQuery?: string): Promise<any> =>
     ipcRenderer.invoke('db:getAllActorsWithRecords', page, pageSize, searchQuery),
 
+  countActorsAndVideos: (searchQuery?: string): Promise<{ totalActors: number; totalVideos: number }> =>
+    ipcRenderer.invoke('db:countActorsAndVideos', searchQuery),
+
   deleteVideo: (videoId: number): Promise<boolean> => ipcRenderer.invoke('db:deleteVideo', videoId),
 
   mergeActors: (sourceActorId: number, targetActorId: number): Promise<void> =>

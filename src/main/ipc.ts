@@ -1,5 +1,5 @@
 import { ipcMain, clipboard, dialog, shell, BrowserWindow } from 'electron'
-import { insertFaceRecord, searchSimilarFaces, deleteVideo, deleteOrphanActors, searchMatchingActors, findOrCreateVideo, createActor, addActorFace, hasFaceRecord, getAllActorsWithRecords, getActorFaces, deleteActorFace, mergeActors, renameActor } from './database'
+import { insertFaceRecord, searchSimilarFaces, deleteVideo, deleteOrphanActors, searchMatchingActors, findOrCreateVideo, createActor, addActorFace, hasFaceRecord, getAllActorsWithRecords, getActorFaces, deleteActorFace, mergeActors, renameActor, countActorsAndVideos } from './database'
 import { checkApi, representImage } from './faceApi'
 import { FfmpegStreamPlayer, type Bounds } from './ffmpegStream'
 import fs from 'fs'
@@ -94,8 +94,13 @@ export function registerIpcHandlers(ipc: typeof ipcMain) {
         ...actor,
         image_blob: actor.image_blob ? actor.image_blob.toString('base64') : null
       })),
-      total: result.total
+      total: result.total,
+      totalVideos: result.totalVideos
     }
+  })
+
+  ipc.handle('db:countActorsAndVideos', async (_event, searchQuery?: string) => {
+    return countActorsAndVideos(searchQuery)
   })
 
   ipc.handle('db:hasFaceRecord', async (_event, actorId: number, videoId: number) => {

@@ -39,7 +39,7 @@
           确认合并 ({{ selectedActorIds.size }})
         </button>
         <button
-          @click="loadRecords()"
+          @click="refresh()"
           class="px-3 py-1.5 bg-gray-700 hover:bg-gray-600 rounded text-sm transition-colors"
           :disabled="loading"
         >
@@ -48,7 +48,7 @@
       </div>
     </div>
 
-    <div v-if="loading" class="flex-1 flex items-center justify-center">
+    <div v-if="loading && actorGroups.length === 0" class="flex-1 flex items-center justify-center">
       <div class="text-gray-400">加载中...</div>
     </div>
 
@@ -105,7 +105,16 @@
         </div>
       </div>
 
-      <div class="flex-1 min-h-0 overflow-y-auto flex flex-col gap-4">
+      <div class="flex-1 min-h-0 overflow-y-auto flex flex-col gap-4 relative">
+          <div v-if="loading" class="absolute inset-0 flex items-center justify-center bg-gray-900/50 z-10 rounded-lg">
+            <div class="flex items-center gap-2 text-gray-400 text-sm">
+              <svg class="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+              </svg>
+              加载中...
+            </div>
+          </div>
           <div
             v-for="group in actorGroups"
             :key="group.actor_id"
@@ -368,7 +377,7 @@
 <script setup lang="ts">
 import {ref, computed, onMounted, nextTick, watch} from 'vue'
 import {
-  getAllActorsWithRecords, deleteVideo, deleteOrphanActors, fileExists, openPath, mergeActors, getActorFaces,
+  getAllActorsWithRecords, countActorsAndVideos, deleteVideo, deleteOrphanActors, fileExists, openPath, mergeActors, getActorFaces,
   deleteActorFace, renameActor
 } from '../lib/api'
 import type {ActorGroup, ActorRecord, ActorFace} from '../lib/types'
@@ -406,6 +415,7 @@ const renameInputRef = ref<HTMLInputElement | null>(null)
 const currentPage = ref(1)
 const pageSize = 20
 const totalActors = ref(0)
+const totalVideos = ref(0)
 
 const totalPages = computed(() => Math.max(1, Math.ceil(totalActors.value / pageSize)))
 
@@ -433,23 +443,26 @@ const visiblePages = computed(() => {
   return pages
 })
 
-const totalVideos = computed(() => {
-  const videoIds = new Set<number>()
-  for (const g of actorGroups.value) {
-    for (const r of g.records) {
-      videoIds.add(r.video_id)
-    }
-  }
-  return videoIds.size
-})
-
 onMounted(() => {
+  loadCounts()
   loadRecords(1)
 })
 
 watch(searchQuery, () => {
+  currentPage.value = 1
+  loadCounts()
   loadRecords(1)
 })
+
+async function loadCounts() {
+  try {
+    const counts = await countActorsAndVideos(searchQuery.value)
+    totalActors.value = counts.totalActors
+    totalVideos.value = counts.totalVideos
+  } catch {
+    // silently fail; keep previous count values
+  }
+}
 
 async function loadRecords(page?: number) {
   loading.value = true
@@ -462,7 +475,6 @@ async function loadRecords(page?: number) {
       g.records.sort((a, b) => b.id - a.id)
     }
     actorGroups.value = actorData
-    totalActors.value = result.total
     currentPage.value = p
     const faceResults = await Promise.all(actorData.map(g => getActorFaces(g.actor_id)))
     const map: Record<number, ActorFace[]> = {}
@@ -475,6 +487,11 @@ async function loadRecords(page?: number) {
   } finally {
     loading.value = false
   }
+}
+
+async function refresh() {
+  await loadCounts()
+  await loadRecords(currentPage.value)
 }
 
 async function deleteRecord(actorId: number, recordId: number) {
