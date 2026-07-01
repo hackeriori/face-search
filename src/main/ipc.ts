@@ -87,12 +87,15 @@ export function registerIpcHandlers(ipc: typeof ipcMain) {
     return findOrCreateVideo(videoPath)
   })
 
-  ipc.handle('db:getAllActorsWithRecords', async () => {
-    const actors = getAllActorsWithRecords()
-    return actors.map((actor: any) => ({
-      ...actor,
-      image_blob: actor.image_blob ? actor.image_blob.toString('base64') : null
-    }))
+  ipc.handle('db:getAllActorsWithRecords', async (_event, page?: number, pageSize?: number, searchQuery?: string) => {
+    const result = getAllActorsWithRecords(page, pageSize, searchQuery)
+    return {
+      data: result.data.map((actor: any) => ({
+        ...actor,
+        image_blob: actor.image_blob ? actor.image_blob.toString('base64') : null
+      })),
+      total: result.total
+    }
   })
 
   ipc.handle('db:hasFaceRecord', async (_event, actorId: number, videoId: number) => {

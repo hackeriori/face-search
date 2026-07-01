@@ -38,7 +38,8 @@ const api = {
   hasFaceRecord: (actorId: number, videoId: number): Promise<boolean> =>
     ipcRenderer.invoke('db:hasFaceRecord', actorId, videoId),
 
-  getAllActorsWithRecords: (): Promise<any[]> => ipcRenderer.invoke('db:getAllActorsWithRecords'),
+  getAllActorsWithRecords: (page?: number, pageSize?: number, searchQuery?: string): Promise<any> =>
+    ipcRenderer.invoke('db:getAllActorsWithRecords', page, pageSize, searchQuery),
 
   deleteVideo: (videoId: number): Promise<boolean> => ipcRenderer.invoke('db:deleteVideo', videoId),
 

@@ -39,7 +39,7 @@
           确认合并 ({{ selectedActorIds.size }})
         </button>
         <button
-          @click="loadRecords"
+          @click="loadRecords()"
           class="px-3 py-1.5 bg-gray-700 hover:bg-gray-600 rounded text-sm transition-colors"
           :disabled="loading"
         >
@@ -58,28 +58,56 @@
       </div>
     </template>
 
-    <template v-else-if="!actorGroups.length">
+    <template v-else-if="totalActors === 0">
       <div class="flex-1 flex items-center justify-center">
-        <div class="text-gray-500">暂无人脸记录</div>
+        <div class="text-gray-500">{{ searchQuery ? '无匹配结果' : '暂无人脸记录' }}</div>
       </div>
     </template>
 
     <div v-else class="flex flex-col gap-3 flex-1 min-h-0">
-      <template v-if="!filteredActorGroups.length">
-        <div class="flex-1 flex items-center justify-center">
-          <div class="text-gray-500">无匹配结果</div>
-        </div>
-      </template>
-
-      <template v-else>
-        <div class="text-sm text-gray-400 shrink-0">
-          共 <span class="text-gray-200 font-medium">{{ filteredActorGroups.length }}</span> 位演员，<span
+      <div class="flex items-center justify-between shrink-0">
+        <span class="text-sm text-gray-400">
+          共 <span class="text-gray-200 font-medium">{{ totalActors }}</span> 位演员，<span
           class="text-gray-200 font-medium">{{ totalVideos }}</span> 部视频
-        </div>
+        </span>
+        <div class="flex items-center gap-1">
+          <button
+            @click="() => loadRecords(currentPage - 1)"
+            :disabled="currentPage <= 1"
+            class="w-7 h-7 flex items-center justify-center rounded text-xs transition-colors shrink-0"
+            :class="currentPage <= 1 ? 'text-gray-600 cursor-not-allowed' : 'text-gray-300 hover:bg-gray-700'"
+          >
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+            </svg>
+          </button>
 
-        <div class="flex-1 min-h-0 overflow-y-auto flex flex-col gap-4">
+          <template v-for="(p, i) in visiblePages" :key="i">
+            <span v-if="p === '...'" class="w-7 h-7 flex items-center justify-center text-xs text-gray-500 select-none">…</span>
+            <button
+              v-else
+              @click="() => loadRecords(p as number)"
+              class="w-7 h-7 flex items-center justify-center rounded text-xs transition-colors shrink-0"
+              :class="p === currentPage ? 'bg-blue-600 text-white' : 'text-gray-300 hover:bg-gray-700'"
+            >{{ p }}</button>
+          </template>
+
+          <button
+            @click="() => loadRecords(currentPage + 1)"
+            :disabled="currentPage >= totalPages"
+            class="w-7 h-7 flex items-center justify-center rounded text-xs transition-colors shrink-0"
+            :class="currentPage >= totalPages ? 'text-gray-600 cursor-not-allowed' : 'text-gray-300 hover:bg-gray-700'"
+          >
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <div class="flex-1 min-h-0 overflow-y-auto flex flex-col gap-4">
           <div
-            v-for="group in filteredActorGroups"
+            v-for="group in actorGroups"
             :key="group.actor_id"
             class="h-60 bg-gray-800 rounded-lg border border-gray-700 overflow-hidden flex shrink-0"
           >
@@ -200,7 +228,6 @@
             </div>
           </div>
         </div>
-      </template>
 
     </div>
 
@@ -339,7 +366,7 @@
 </template>
 
 <script setup lang="ts">
-import {ref, computed, onMounted, nextTick} from 'vue'
+import {ref, computed, onMounted, nextTick, watch} from 'vue'
 import {
   getAllActorsWithRecords, deleteVideo, deleteOrphanActors, fileExists, openPath, mergeActors, getActorFaces,
   deleteActorFace, renameActor
@@ -376,19 +403,39 @@ const editingActorId = ref<number | null>(null)
 const renameText = ref('')
 const renameInputRef = ref<HTMLInputElement | null>(null)
 
-const filteredActorGroups = computed(() => {
-  const q = searchQuery.value.trim().toLowerCase()
-  if (!q) return actorGroups.value
-  return actorGroups.value.filter(g => {
-    const displayName = g.name || `演员 #${g.actor_id}`
-    if (displayName.toLowerCase().includes(q)) return true
-    return g.records.some(r => r.video_path && r.video_path.toLowerCase().includes(q))
-  })
+const currentPage = ref(1)
+const pageSize = 20
+const totalActors = ref(0)
+
+const totalPages = computed(() => Math.max(1, Math.ceil(totalActors.value / pageSize)))
+
+const visiblePages = computed(() => {
+  const total = totalPages.value
+  const current = currentPage.value
+  if (total <= 7) {
+    return Array.from({length: total}, (_, i) => i + 1) as (number | string)[]
+  }
+  const pages: (number | string)[] = [1]
+  let left = Math.max(2, current - 1)
+  let right = Math.min(total - 1, current + 1)
+  if (current <= 3) {
+    right = Math.min(5, total - 1)
+    left = 2
+  }
+  if (current >= total - 2) {
+    left = Math.max(total - 4, 2)
+    right = total - 1
+  }
+  if (left > 2) pages.push('...')
+  for (let i = left; i <= right; i++) pages.push(i)
+  if (right < total - 1) pages.push('...')
+  pages.push(total)
+  return pages
 })
 
 const totalVideos = computed(() => {
   const videoIds = new Set<number>()
-  for (const g of filteredActorGroups.value) {
+  for (const g of actorGroups.value) {
     for (const r of g.records) {
       videoIds.add(r.video_id)
     }
@@ -397,22 +444,29 @@ const totalVideos = computed(() => {
 })
 
 onMounted(() => {
-  loadRecords()
+  loadRecords(1)
 })
 
-async function loadRecords() {
+watch(searchQuery, () => {
+  loadRecords(1)
+})
+
+async function loadRecords(page?: number) {
   loading.value = true
   error.value = ''
   try {
-    const data = await getAllActorsWithRecords()
-    data.sort((a, b) => b.actor_id - a.actor_id)
-    for (const g of data) {
+    const p = page ?? currentPage.value
+    const result = await getAllActorsWithRecords(p, pageSize, searchQuery.value)
+    const actorData = result.data
+    for (const g of actorData) {
       g.records.sort((a, b) => b.id - a.id)
     }
-    actorGroups.value = data
-    const faceResults = await Promise.all(data.map(g => getActorFaces(g.actor_id)))
+    actorGroups.value = actorData
+    totalActors.value = result.total
+    currentPage.value = p
+    const faceResults = await Promise.all(actorData.map(g => getActorFaces(g.actor_id)))
     const map: Record<number, ActorFace[]> = {}
-    data.forEach((g, i) => {
+    actorData.forEach((g, i) => {
       map[g.actor_id] = faceResults[i]
     })
     actorFacesMap.value = map
@@ -525,7 +579,7 @@ async function confirmMerge() {
 
 async function checkInvalidRecords() {
   try {
-    const groups = await getAllActorsWithRecords()
+    const {data: groups} = await getAllActorsWithRecords()
     const seen = new Set<number>()
     const invalid: {video_id: number; video_path: string}[] = []
     for (const g of groups) {

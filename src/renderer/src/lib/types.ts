@@ -82,6 +82,11 @@ export interface ActorGroup {
   records: ActorRecord[]
 }
 
+export interface PaginatedActorGroups {
+  data: ActorGroup[]
+  total: number
+}
+
 export interface ActorFace {
   id: number
   actor_id: number
@@ -127,7 +132,7 @@ export interface ElectronAPI {
   getActorFaces: (actorId: number) => Promise<ActorFace[]>
   deleteActorFace: (faceId: number) => Promise<boolean>
   searchFaces: (embedding: number[], maxDistance?: number) => Promise<SearchResult[]>
-  getAllActorsWithRecords: () => Promise<ActorGroup[]>
+  getAllActorsWithRecords: (page?: number, pageSize?: number, searchQuery?: string) => Promise<PaginatedActorGroups>
   mergeActors: (sourceActorId: number, targetActorId: number) => Promise<void>
   renameActor: (actorId: number, name: string) => Promise<boolean>
   deleteVideo: (videoId: number) => Promise<boolean>

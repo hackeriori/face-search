@@ -241,10 +241,43 @@ export function searchSimilarFaces(embedding: Buffer, maxDistance: number = 0.5)
   return rows
 }
 
-export function getAllActorsWithRecords(): any[] {
+export function getAllActorsWithRecords(page?: number, pageSize?: number, searchQuery?: string): { data: any[], total: number } {
   if (!db) throw new Error('Database not initialized')
-  const rows = db.prepare(`
-    WITH best_confidence AS (
+
+  const hasSearch = !!searchQuery && searchQuery.trim().length > 0
+  const searchPattern = hasSearch ? `%${searchQuery.trim()}%` : null
+
+  // Count total matching actors
+  let countSql = `SELECT COUNT(DISTINCT a.id) as total FROM actors a`
+  let countParams: any[] = []
+  if (hasSearch) {
+    countSql += ` LEFT JOIN face_records fr ON fr.actor_id = a.id LEFT JOIN videos v ON v.id = fr.video_id`
+    countSql += ` WHERE a.name LIKE ? OR v.path LIKE ?`
+    countParams = [searchPattern, searchPattern]
+  }
+  const total = (db.prepare(countSql).get(...countParams) as any).total
+
+  // Build data query with paginated actor subquery
+  const isPaginated = page !== undefined && pageSize !== undefined
+
+  let dataSql = `
+    WITH actor_page AS (
+      SELECT a.id
+      FROM actors a
+  `
+  let dataParams: any[] = []
+  if (hasSearch) {
+    dataSql += ` LEFT JOIN face_records fr ON fr.actor_id = a.id LEFT JOIN videos v ON v.id = fr.video_id`
+    dataSql += ` WHERE a.name LIKE ? OR v.path LIKE ?`
+    dataParams = [searchPattern, searchPattern]
+  }
+  dataSql += ` GROUP BY a.id ORDER BY a.id DESC`
+  if (isPaginated) {
+    dataSql += ` LIMIT ? OFFSET ?`
+    dataParams.push(pageSize!, (page! - 1) * pageSize!)
+  }
+  dataSql += `
+    ), best_confidence AS (
       SELECT
         af.actor_id,
         af.image_blob,
@@ -272,8 +305,11 @@ export function getAllActorsWithRecords(): any[] {
     LEFT JOIN best_confidence bc ON bc.actor_id = a.id AND bc.rn = 1
     LEFT JOIN face_records fr ON fr.actor_id = a.id
     LEFT JOIN videos v ON v.id = fr.video_id
-    ORDER BY a.id
-  `).all() as any[]
+    WHERE a.id IN (SELECT id FROM actor_page)
+    ORDER BY a.id DESC
+  `
+
+  const rows = db.prepare(dataSql).all(...dataParams) as any[]
 
   const actorMap = new Map<number, any>()
   for (const row of rows) {
@@ -298,7 +334,8 @@ export function getAllActorsWithRecords(): any[] {
       })
     }
   }
-  return Array.from(actorMap.values())
+
+  return { data: Array.from(actorMap.values()), total }
 }
 
 export function getActorFaces(actorId: number): ActorFaceRow[] {
